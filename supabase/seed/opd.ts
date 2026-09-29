@@ -5,6 +5,7 @@
  */
 
 import { createClient } from "../../src/lib/supabase/client";
+import { sid } from "./uuid";
 
 export interface OpdRow {
   id: string;
@@ -15,50 +16,50 @@ export interface OpdRow {
 
 export const OPD_ROWS: OpdRow[] = [
   {
-    id: "opd-dpu",
+    id: sid("opd-dpu"),
     name: "Dinas Pekerjaan Umum",
     short_name: "DPU",
     contact_info: { telepon: "(0335) 421234", email: "dpu@probolinggokab.go.id" },
   },
   {
-    id: "opd-dinkes",
+    id: sid("opd-dinkes"),
     name: "Dinas Kesehatan",
     short_name: "Dinkes",
     contact_info: { telepon: "(0335) 421235", email: "dinkes@probolinggokab.go.id" },
   },
   {
-    id: "opd-dlh",
+    id: sid("opd-dlh"),
     name: "Dinas Lingkungan Hidup",
     short_name: "DLH",
     contact_info: { telepon: "(0335) 421236", email: "dlh@probolinggokab.go.id" },
   },
   {
-    id: "opd-pdam",
+    id: sid("opd-pdam"),
     name: "Perusahaan Daerah Air Minum",
     short_name: "PDAM",
     contact_info: { telepon: "(0335) 421237", email: "pdam@probolinggokab.go.id" },
   },
   {
-    id: "opd-disdik",
+    id: sid("opd-disdik"),
     name: "Dinas Pendidikan",
     short_name: "Disdik",
     contact_info: { telepon: "(0335) 421238", email: "disdik@probolinggokab.go.id" },
   },
   {
-    id: "opd-satpol",
+    id: sid("opd-satpol"),
     name: "Satuan Polisi Pamong Praja",
     short_name: "Satpol",
     contact_info: { telepon: "(0335) 421239", email: "satpol@probolinggokab.go.id" },
   },
   {
-    id: "opd-bpkad",
+    id: sid("opd-bpkad"),
     name: "Badan Pengelola Keuangan dan Aset Daerah",
     short_name: "BPKAD",
     contact_info: { telepon: "(0335) 421240", email: "bpkad@probolinggokab.go.id" },
   },
 ];
 
-/** Map short_name → id untuk dipakai oleh seed complaints */
+/** Map short_name → UUID untuk dipakai oleh seed complaints */
 export const OPD_ID_BY_SHORT: Record<string, string> = Object.fromEntries(
   OPD_ROWS.map((o) => [o.short_name, o.id])
 );

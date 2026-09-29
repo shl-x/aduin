@@ -38,7 +38,7 @@ async function main(): Promise<void> {
     console.log("  Password: DEMO_SEED_PASSWORD dari .env.local\n");
   } catch (err) {
     console.error("\n❌ Seed gagal:", err);
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 
