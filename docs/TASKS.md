@@ -21,18 +21,18 @@
 
 ### Kode (Bob)
 
-- [ ] Inisialisasi proyek Next.js dengan TypeScript strict: `npx create-next-app@latest aduin --typescript --tailwind --app`.
-- [ ] Instal dan konfigurasi shadcn/ui: `npx shadcn@latest init`, pilih tema default.
-- [ ] Instal dependensi: `@supabase/supabase-js`, `@supabase/ssr`, `zod`, `leaflet`, `react-leaflet`, `recharts`, `lucide-react`.
-- [ ] Buat `.env.example` berisi semua variabel dari ARCHITECTURE.md §9 (Supabase, Langflow, Flow IDs, Embedding, Clustering, Early Warning, Demo Mode, `DEMO_SEED_PASSWORD`), tanpa nilai asli.
+- [x] Inisialisasi proyek Next.js dengan TypeScript strict: `npx create-next-app@latest aduin --typescript --tailwind --app`.
+- [x] Instal dan konfigurasi shadcn/ui: `npx shadcn@latest init`, pilih tema default.
+- [x] Instal dependensi: `@supabase/supabase-js`, `@supabase/ssr`, `zod`, `leaflet`, `react-leaflet`, `recharts`, `lucide-react`.
+- [x] Buat `.env.example` berisi semua variabel dari ARCHITECTURE.md §9 (Supabase, Langflow, Flow IDs, Embedding, Clustering, Early Warning, Demo Mode, `DEMO_SEED_PASSWORD`), tanpa nilai asli.
 - [ ] Buat `.env.local` dari `.env.example` dan isi nilai Supabase + Langflow yang sudah tersedia.
-- [ ] Tambahkan `.env.local` ke `.gitignore`.
-- [ ] Buat `src/lib/supabase/client.ts`: ekspor fungsi `createClient()` (server-side, menggunakan `SUPABASE_SERVICE_ROLE_KEY`) dan `createBrowserClient()` (menggunakan `NEXT_PUBLIC_*`).
-- [ ] Buat `src/lib/langflow/flows.ts`: peta nama flow ke env variable Flow ID.
-- [ ] Buat `src/lib/langflow/client.ts`: fungsi `runFlow(flowName, inputValue)` dengan header `x-api-key`, timeout 15 detik, dan fungsi `healthCheck()` yang mengembalikan `true`/`false`.
-- [ ] Buat layout dasar `src/app/layout.tsx` dengan sidebar navigasi per role (link berbeda untuk warga / operator / petugas_opd / pimpinan).
-- [ ] Buat halaman placeholder untuk setiap route utama: `/lapor`, `/dashboard`, `/peta`, `/alert`, `/tugas`, `/ringkasan` — masing-masing dengan loading state dan empty state.
-- [ ] Pastikan `npm run build` dan `npm run lint` lulus tanpa error.
+- [x] Tambahkan `.env.local` ke `.gitignore`.
+- [x] Buat `src/lib/supabase/client.ts`: ekspor fungsi `createClient()` (server-side, menggunakan `SUPABASE_SERVICE_ROLE_KEY`) dan `createBrowserClient()` (menggunakan `NEXT_PUBLIC_*`).
+- [x] Buat `src/lib/langflow/flows.ts`: peta nama flow ke env variable Flow ID.
+- [x] Buat `src/lib/langflow/client.ts`: fungsi `runFlow(flowName, inputValue)` dengan header `x-api-key`, timeout 15 detik, dan fungsi `healthCheck()` yang mengembalikan `true`/`false`.
+- [x] Buat layout dasar `src/app/layout.tsx` dengan sidebar navigasi per role (link berbeda untuk warga / operator / petugas_opd / pimpinan).
+- [x] Buat halaman placeholder untuk setiap route utama: `/lapor`, `/dashboard`, `/peta`, `/alert`, `/tugas`, `/ringkasan` — masing-masing dengan loading state dan empty state.
+- [x] Pastikan `npm run build` dan `npm run lint` lulus tanpa error.
 
 ### Definition of Done
 
