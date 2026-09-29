@@ -1,0 +1,5 @@
+- TypeScript strict, tanpa `any`.
+- Komponen UI memakai shadcn/ui, styling Tailwind.
+- Seluruh teks UI dalam Bahasa Indonesia yang ramah warga.
+- Secret hanya di .env.local. Jangan hardcode atau log API key.
+- Setiap halaman punya loading state, empty state, dan error state.

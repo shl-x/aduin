@@ -1,0 +1,7 @@
+- Semua panggilan AI lewat src/lib/langflow/client.ts. Jangan memanggil Langflow dari komponen client.
+- Flow ID diambil dari environment variable (LANGFLOW_FLOW_TRIAGE_ID, dst.), dipetakan di src/lib/langflow/flows.ts.
+- Endpoint: POST {LANGFLOW_BASE_URL}/api/v1/run/{flowId} dengan header x-api-key.
+- Output flow harus JSON sesuai kontrak di docs/LANGFLOW_FLOWS.md dan divalidasi dengan zod di src/lib/langflow/schemas.ts.
+- Parsing response Langflow harus tahan banting (response bersarang, JSON dibungkus teks atau ```json).
+- Setiap flow punya timeout dan fallback. Hasil AI untuk data seed di-cache di database agar demo tetap jalan saat Langflow lambat.
+- Jangan mengubah file di langflow/flows/ secara manual; itu hasil export dari Langflow.
