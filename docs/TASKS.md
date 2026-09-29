@@ -99,15 +99,16 @@
 
 ### Kode (Bob)
 
-- [ ] Buat `src/lib/langflow/schemas.ts`: ekspor `clarifyOutputSchema`, `triageOutputSchema` (dengan `OPD_SHORT_NAMES` tanpa `BPKAD`), dan tipe inferensi Zod masing-masing sesuai LANGFLOW_FLOWS.md.
-- [ ] Perbarui `src/lib/langflow/client.ts`: tambahkan fungsi `runClarify()` dan `runTriage()` yang memanggil `runFlow()` dan memvalidasi output dengan Zod; kembalikan typed result atau `null` jika gagal.
-- [ ] Buat halaman Simulator WhatsApp `src/app/(warga)/lapor/page.tsx`: tampilan gelembung chat, input teks, tombol kirim, pilih lokasi (dropdown desa/kecamatan), upload foto opsional; loading state saat menunggu AI; empty state saat percakapan kosong.
-- [ ] Buat `POST /api/complaints`: simpan aduan ke `complaints` dengan status `pending`; jika clarify diperlukan (field `needs_clarification = true` dari flow), kembalikan pertanyaan balik; jika lengkap, trigger pipeline triage.
-- [ ] Buat pipeline triage di `POST /api/triage/[id]`: panggil `runTriage()`, validasi Zod, simpan ke `triage_results`; jika sukses set `complaints.status = 'triaged'` dan buat `coordination_plan` sederhana (1 task ke `effective_opd_id`); jika gagal set `status = 'triage_failed'`.
-- [ ] Buat `POST /api/triage/[id]/override`: simpan override ke `triage_overrides` (operator only), perbarui `effective_category` dan `effective_opd_id`.
-- [ ] Buat halaman daftar aduan `src/app/(operator)/dashboard/page.tsx`: tabel aduan dengan kolom status, kategori, OPD, urgensi, wilayah, tanggal; filter by status/OPD/kategori; loading state dan empty state.
-- [ ] Buat halaman detail aduan `src/app/(operator)/aduan/[id]/page.tsx` (dan route `src/app/(opd)/aduan/[id]/page.tsx` untuk petugas_opd): tampilkan hasil triage AI + alasan; tombol override untuk operator; status badge.
-- [ ] Pastikan `npm run build` dan `npm run lint` lulus.
+- [x] Buat `src/lib/langflow/schemas.ts`: ekspor `clarifyOutputSchema`, `triageOutputSchema` (dengan `OPD_SHORT_NAMES` tanpa `BPKAD`), dan tipe inferensi Zod masing-masing sesuai LANGFLOW_FLOWS.md.
+- [x] Perbarui `src/lib/langflow/client.ts`: tambahkan fungsi `runClarify()` dan `runTriage()` yang memanggil `runFlow()` dan memvalidasi output dengan Zod; kembalikan typed result atau `null` jika gagal.
+- [x] Buat halaman Simulator WhatsApp `src/app/(warga)/lapor/page.tsx`: tampilan gelembung chat, input teks, tombol kirim, pilih lokasi (dropdown desa/kecamatan), upload foto opsional; loading state saat menunggu AI; empty state saat percakapan kosong.
+- [x] Buat `POST /api/complaints`: simpan aduan ke `complaints` dengan status `pending`; jika clarify diperlukan (field `needs_clarification = true` dari flow), kembalikan pertanyaan balik; jika lengkap, trigger pipeline triage.
+- [x] Buat pipeline triage di `POST /api/triage/[id]`: panggil `runTriage()`, validasi Zod, simpan ke `triage_results`; jika sukses set `complaints.status = 'triaged'` dan buat `coordination_plan` sederhana (1 task ke `effective_opd_id`); jika gagal set `status = 'triage_failed'`.
+- [x] Buat `POST /api/triage/[id]/override`: simpan override ke `triage_overrides` (operator only), perbarui `effective_category` dan `effective_opd_id`.
+- [x] Buat halaman daftar aduan `src/app/(operator)/dashboard/page.tsx`: tabel aduan dengan kolom status, kategori, OPD, urgensi, wilayah, tanggal; filter by status/OPD/kategori; loading state dan empty state.
+- [x] Buat `supabase/seed/triage-seed.ts`: men-triage semua aduan seed berstatus `pending` lewat pipeline AI sungguhan (konkurensi maksimal 3), tampilkan progres, cetak akurasi kategori vs `label_manual` di akhir. Jalankan: `npx tsx --env-file=.env.local supabase/seed/triage-seed.ts`.
+- [x] Buat halaman detail aduan `src/app/aduan/[id]/page.tsx` — **satu halaman kanonik** untuk operator dan petugas_opd (bukan dua salinan di `(operator)/aduan/[id]` + `(opd)/aduan/[id]`: dua route group yang resolve ke path URL identik gagal di-build oleh Next.js App Router; ARCHITECTURE.md §7 sendiri hanya mendaftar satu path `/aduan/[id]`). Menampilkan hasil triage AI + alasan; tombol override untuk operator; status badge + badge "Override".
+- [x] Pastikan `npm run build` dan `npm run lint` lulus.
 
 ### Definition of Done
 

@@ -19,6 +19,19 @@ export const FLOW_NAMES = {
 export type FlowName = keyof typeof FLOW_NAMES;
 
 /**
+ * Nama flow asli di Langflow — dipakai sebagai nilai kolom `ai_cache.flow_name`
+ * (lihat ARCHITECTURE.md §4.15: "Nama flow Langflow (aduin-triage, dst.)").
+ */
+export const LANGFLOW_FLOW_LABELS: Record<FlowName, string> = {
+  clarify: "aduin-clarify",
+  triage: "aduin-triage",
+  embed: "aduin-embed",
+  opdAgent: "aduin-opd-agent",
+  verify: "aduin-verify",
+  alertSummary: "aduin-alert-summary",
+};
+
+/**
  * Mengembalikan Flow ID dari environment variable.
  * Melempar error jika variabel belum diisi — artinya flow belum dibuat di Langflow.
  */
