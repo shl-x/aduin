@@ -13,7 +13,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@/lib/supabase/client";
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/components/sidebar-nav";
@@ -49,7 +49,7 @@ export function RoleSwitcher({ currentRole }: RoleSwitcherProps) {
     setLoading(email);
     setError(null);
 
-    const supabase = createBrowserClient();
+    const supabase = createBrowserSupabaseClient();
     const password = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "";
     if (!password) {
       setError("NEXT_PUBLIC_DEMO_PASSWORD belum diset.");

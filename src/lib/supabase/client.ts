@@ -1,15 +1,18 @@
 /**
  * src/lib/supabase/client.ts
  *
- * Dua factory function Supabase:
- *  - createClient()        → server-side dengan SERVICE_ROLE_KEY (bypass RLS untuk operasi admin)
- *  - createBrowserClient() → client-side dengan NEXT_PUBLIC_* keys
+ * Supabase admin client (server-only).
+ * Menggunakan SERVICE_ROLE_KEY sehingga melewati RLS — cocok untuk:
+ *   - Route Handlers yang butuh akses penuh
+ *   - Script seed (supabase/seed/)
+ *   - Server Components yang perlu membaca data tanpa batasan RLS
  *
- * Jangan pernah kirim SERVICE_ROLE_KEY ke browser.
+ * ⚠️  Jangan pernah import file ini di Client Components / browser.
+ *     SERVICE_ROLE_KEY tidak boleh bocor ke bundle browser.
+ *     Untuk kode browser gunakan src/lib/supabase/browser.ts.
  */
 
 import { createClient as supabaseCreateClient } from "@supabase/supabase-js";
-import { createBrowserClient as supabaseBrowserClient } from "@supabase/ssr";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -20,8 +23,8 @@ function requireEnv(name: string): string {
 }
 
 /**
- * Server-side Supabase client — gunakan di Route Handlers, Server Components,
- * dan script seed. Menggunakan SERVICE_ROLE_KEY sehingga melewati RLS.
+ * Server-side Supabase admin client.
+ * Menggunakan SERVICE_ROLE_KEY — melewati RLS.
  */
 export function createClient() {
   return supabaseCreateClient(
@@ -29,21 +32,9 @@ export function createClient() {
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     {
       auth: {
-        // Tidak perlu sesi di server-side service role
         persistSession: false,
         autoRefreshToken: false,
       },
     }
-  );
-}
-
-/**
- * Browser-side Supabase client — gunakan di Client Components.
- * Hanya mengakses data sesuai RLS yang berlaku untuk pengguna yang login.
- */
-export function createBrowserClient() {
-  return supabaseBrowserClient(
-    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
   );
 }
