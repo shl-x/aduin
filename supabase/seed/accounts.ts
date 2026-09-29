@@ -50,7 +50,16 @@ export async function seedAccounts(): Promise<void> {
 
     if (found) {
       userId = found.id;
-      console.log(`  ℹ️  Akun sudah ada: ${account.email} (${userId})`);
+      const { error: updateErr } = await supabase.auth.admin.updateUserById(
+        userId,
+        { password, email_confirm: true }
+      );
+      if (updateErr) {
+        throw new Error(
+          `Gagal update password ${account.email}: ${updateErr.message}`
+        );
+      }
+      console.log(`  ℹ️  Akun sudah ada, password disinkronkan: ${account.email} (${userId})`);
     } else {
       const { data, error } = await supabase.auth.admin.createUser({
         email: account.email,

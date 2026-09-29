@@ -6,14 +6,15 @@
  * Login-instan antar-akun demo.
  * Hanya dirender saat NEXT_PUBLIC_DEMO_MODE=true.
  *
- * Setelah signInWithPassword berhasil, memanggil router.refresh() agar
- * Server Components merender ulang dengan sesi baru (role baru) tanpa full reload.
+ * Login dilakukan lewat POST /api/demo/login — password demo hanya pernah
+ * dibaca di server, tidak pernah dikirim ke atau ada di browser. Setelah
+ * endpoint memasang cookie sesi, panggil router.refresh() agar Server
+ * Components merender ulang dengan sesi baru (role baru) tanpa full reload.
  * Tidak membaca localStorage. Role aktif diterima sebagai prop dari server.
  */
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/components/sidebar-nav";
@@ -21,17 +22,17 @@ import type { UserRole } from "@/components/sidebar-nav";
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 interface DemoRoleConfig {
-  email: string;
+  key: string;
   label: string;
   role: UserRole;
 }
 
 const DEMO_ROLES: DemoRoleConfig[] = [
-  { email: "warga@demo.aduin",    label: "Warga",    role: "warga" },
-  { email: "operator@demo.aduin", label: "Operator", role: "operator" },
-  { email: "pu@demo.aduin",       label: "DPU",      role: "petugas_opd" },
-  { email: "dinkes@demo.aduin",   label: "Dinkes",   role: "petugas_opd" },
-  { email: "pimpinan@demo.aduin", label: "Pimpinan", role: "pimpinan" },
+  { key: "warga",    label: "Warga",    role: "warga" },
+  { key: "operator", label: "Operator", role: "operator" },
+  { key: "pu",       label: "DPU",      role: "petugas_opd" },
+  { key: "dinkes",   label: "Dinkes",   role: "petugas_opd" },
+  { key: "pimpinan", label: "Pimpinan", role: "pimpinan" },
 ];
 
 interface RoleSwitcherProps {
@@ -45,25 +46,19 @@ export function RoleSwitcher({ currentRole }: RoleSwitcherProps) {
 
   if (!DEMO_MODE) return null;
 
-  async function switchTo(email: string) {
-    setLoading(email);
+  async function switchTo(key: string) {
+    setLoading(key);
     setError(null);
 
-    const supabase = createBrowserSupabaseClient();
-    const password = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "";
-    if (!password) {
-      setError("NEXT_PUBLIC_DEMO_PASSWORD belum diset.");
-      setLoading(null);
-      return;
-    }
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const res = await fetch("/api/demo/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key }),
     });
 
-    if (authError) {
-      setError(`Login gagal: ${authError.message}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setError(body?.error ?? "Login gagal.");
       setLoading(null);
       return;
     }
@@ -85,14 +80,14 @@ export function RoleSwitcher({ currentRole }: RoleSwitcherProps) {
           true;
         return (
           <Button
-            key={demo.email}
+            key={demo.key}
             variant={isActive ? "default" : "outline"}
             size="sm"
             disabled={loading !== null}
-            onClick={() => switchTo(demo.email)}
+            onClick={() => switchTo(demo.key)}
             className={cn("h-7 px-2.5 text-xs", isActive && "font-semibold")}
           >
-            {loading === demo.email ? (
+            {loading === demo.key ? (
               <span className="animate-pulse">Masuk…</span>
             ) : (
               demo.label
