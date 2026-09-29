@@ -93,21 +93,45 @@ export async function runFlow(
  *
  * @returns true jika Langflow merespons, false jika tidak.
  */
-export async function healthCheck(): Promise<boolean> {
-  const url = `${BASE_URL}/api/v1/flows`;
+export async function healthCheck(): Promise<{ ok: boolean; detail: string }> {
+  // Gunakan endpoint publik /health — tidak butuh API key.
+  // /api/v1/flows butuh auth dan akan return 401 jika key kosong.
+  const url = `${BASE_URL}/health`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 5_000);
   try {
     const response = await fetch(url, {
       method: "GET",
-      headers: {
-        ...(API_KEY ? { "x-api-key": API_KEY } : {}),
-      },
       signal: controller.signal,
     });
-    return response.ok;
-  } catch {
-    return false;
+
+    if (!response.ok) {
+      const detail = `HTTP ${response.status} dari ${url}`;
+      console.error(`[Langflow] healthCheck gagal: ${detail}`);
+      return { ok: false, detail };
+    }
+
+    // Verifikasi body mengandung { "status": "ok" }
+    const body: unknown = await response.json().catch(() => null);
+    const statusOk =
+      typeof body === "object" &&
+      body !== null &&
+      (body as Record<string, unknown>)["status"] === "ok";
+
+    if (!statusOk) {
+      const detail = `Body tidak sesuai: ${JSON.stringify(body)}`;
+      console.error(`[Langflow] healthCheck: ${detail}`);
+      return { ok: false, detail };
+    }
+
+    return { ok: true, detail: "Langflow berjalan normal" };
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "AbortError";
+    const detail = isTimeout
+      ? `Timeout setelah 5000ms — pastikan Langflow berjalan di ${BASE_URL}`
+      : `Tidak dapat terhubung ke ${BASE_URL}: ${err instanceof Error ? err.message : String(err)}`;
+    console.error(`[Langflow] healthCheck error: ${detail}`);
+    return { ok: false, detail };
   } finally {
     clearTimeout(timer);
   }
