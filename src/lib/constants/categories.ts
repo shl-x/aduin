@@ -19,7 +19,7 @@ export const CATEGORIES = [
   },
   {
     slug: "kesehatan_diare",
-    label: "Kesehatan — Diare/Air Keruh",
+    label: "Kesehatan & Sanitasi",
     defaultOpdShortName: "Dinkes",
   },
   {

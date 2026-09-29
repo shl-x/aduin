@@ -205,6 +205,24 @@ async function cacheResult(flowLabel: string, inputHash: string, output: unknown
   }
 }
 
+/**
+ * Menghapus entri ai_cache untuk (flowName, inputValue) tertentu — dipakai
+ * saat sebuah aduan perlu dipaksa dipanggil ulang ke Langflow (mis. setelah
+ * prompt diperbarui) alih-alih diam-diam mengembalikan hasil lama dari
+ * cache. `inputValue` harus persis sama (bentuk objek & urutan field) dengan
+ * yang dikirim ke runFlow()/runTriage() dkk. agar hash-nya cocok.
+ */
+export async function invalidateCache(flowName: FlowName, inputValue: unknown): Promise<void> {
+  const flowLabel = LANGFLOW_FLOW_LABELS[flowName];
+  const inputHash = hashInput(JSON.stringify(inputValue));
+  try {
+    const supabase = createSupabaseAdminClient();
+    await supabase.from("ai_cache").delete().eq("flow_name", flowLabel).eq("input_hash", inputHash);
+  } catch (err) {
+    console.error(`[Langflow] Gagal menghapus ai_cache untuk "${flowLabel}":`, err);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Pemanggilan HTTP mentah ke Langflow
 // ---------------------------------------------------------------------------

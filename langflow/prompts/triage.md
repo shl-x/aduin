@@ -24,7 +24,7 @@ Pilih TEPAT SATU slug. Jangan membuat slug baru.
 | Slug | Label | OPD Default |
 |------|-------|-------------|
 | infrastruktur_jalan | Infrastruktur Jalan | DPU |
-| kesehatan_diare | Kesehatan — Diare/Air Keruh | Dinkes |
+| kesehatan_diare | Kesehatan & Sanitasi | Dinkes |
 | pengelolaan_sampah | Pengelolaan Sampah | DLH |
 | banjir_drainase | Banjir/Drainase | DPU |
 | air_bersih_pdam | Air Bersih/PDAM | PDAM |
@@ -33,10 +33,14 @@ Pilih TEPAT SATU slug. Jangan membuat slug baru.
 
 ### Aturan Pembeda Kategori
 
-- Air keruh/bermasalah DAN ada keluhan kesehatan (diare, sakit perut, muntah) → kesehatan_diare.
-- Air keruh, mati, atau debit kecil TANPA keluhan kesehatan → air_bersih_pdam.
-- Sampah yang menyumbat saluran DAN menyebabkan genangan/banjir → banjir_drainase.
-- Sampah menumpuk atau tidak diangkut tanpa genangan → pengelolaan_sampah.
+- Air bermasalah (PDAM maupun sumur) DAN ada keluhan kesehatan (diare, sakit perut, muntah, gatal) → kesehatan_diare.
+- Layanan kesehatan masyarakat (posyandu, puskesmas, bidan desa, alat atau fasilitas kesehatan) → kesehatan_diare.
+- Air sumur warga atau sumber air non-PDAM yang tercemar, berbau, atau tidak layak minum → kesehatan_diare. Sumur warga bukan tanggung jawab PDAM.
+- Air PDAM atau air ledeng yang keruh, mati, atau debitnya kecil TANPA keluhan kesehatan → air_bersih_pdam.
+- Masalah fasilitas di dalam lingkungan sekolah (ruang kelas, lapangan, perpustakaan, air minum, toilet sekolah) → pendidikan.
+- Talud, tanggul, atau tepi sungai yang longsor, amblas, atau jebol → banjir_drainase.
+- Sampah yang menyumbat saluran DAN menyebabkan genangan atau banjir → banjir_drainase.
+- Sampah menumpuk, meluber, atau tidak diangkut tanpa genangan air → pengelolaan_sampah.
 - Jalan rusak akibat banjir: pilih masalah yang paling ditekankan warga.
 - Jika aduan tidak jelas cocok ke kategori mana pun, pilih yang paling mendekati dan gunakan handling_path = butuh_data.
 
@@ -56,13 +60,13 @@ Gunakan OPD Default dari kategori terpilih, kecuali isi aduan jelas menunjukkan 
 ### Definisi Jalur Penanganan (handling_path)
 
 - quick_fix: Bisa diselesaikan dalam 1 kunjungan tanpa survei atau anggaran khusus (contoh: angkut sampah, bersihkan saluran kecil, tertibkan PKL).
-- bertahap: Perlu survei, perencanaan, atau alokasi anggaran; penyelesaian multi-langkah (contoh: perbaikan jalan berlubang besar, perbaikan jaringan pipa).
-- butuh_data: Informasi tidak cukup atau penyebab belum diketahui; perlu investigasi lapangan dulu (contoh: wabah dengan sumber tidak jelas, aduan tanpa detail).
+- bertahap: Perlu survei, perencanaan, atau alokasi anggaran; penyelesaian multi-langkah (contoh: perbaikan jalan berlubang besar, perbaikan jaringan pipa, perbaikan talud).
+- butuh_data: Informasi tidak cukup atau penyebab belum diketahui; perlu investigasi lapangan dulu (contoh: wabah dengan sumber tidak jelas, pencemaran sumur yang sumbernya belum diketahui, aduan tanpa detail).
 
 ### Panduan Urgensi (urgency)
 
-- 5: Mengancam jiwa/keselamatan, perlu respons segera (banjir tinggi, dugaan wabah, bangunan hampir roboh).
-- 4: Dampak serius pada layanan publik atau kelompok rentan (anak sekolah, lansia, pasien).
+- 5: Mengancam jiwa/keselamatan, perlu respons segera (banjir tinggi, dugaan wabah, tanggul hampir jebol, bangunan hampir roboh).
+- 4: Dampak serius pada layanan publik atau kelompok rentan (anak sekolah, ibu hamil, bayi, lansia, pasien).
 - 3: Gangguan signifikan tetapi tidak mengancam jiwa.
 - 2: Masalah sedang, bisa ditangani dalam beberapa hari.
 - 1: Keluhan minor atau bersifat informatif.

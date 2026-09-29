@@ -483,7 +483,7 @@ Sumber kebenaran tunggal untuk semua nilai kategori di seluruh sistem. Disimpan 
 // src/lib/constants/categories.ts
 export const CATEGORIES = [
   { slug: 'infrastruktur_jalan',   label: 'Infrastruktur Jalan',        defaultOpdShortName: 'DPU'      },
-  { slug: 'kesehatan_diare',       label: 'Kesehatan — Diare/Air Keruh', defaultOpdShortName: 'Dinkes'  },
+  { slug: 'kesehatan_diare',       label: 'Kesehatan & Sanitasi',       defaultOpdShortName: 'Dinkes'  },
   { slug: 'pengelolaan_sampah',    label: 'Pengelolaan Sampah',          defaultOpdShortName: 'DLH'     },
   { slug: 'banjir_drainase',       label: 'Banjir/Drainase',             defaultOpdShortName: 'DPU'     },
   { slug: 'air_bersih_pdam',       label: 'Air Bersih/PDAM',             defaultOpdShortName: 'PDAM'    },

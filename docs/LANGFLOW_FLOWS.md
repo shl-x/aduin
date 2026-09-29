@@ -43,7 +43,7 @@ Semua nilai kategori di seluruh sistem menggunakan **slug** berikut. Flow `aduin
 | Slug | Label Tampilan | OPD Default |
 |------|---------------|-------------|
 | `infrastruktur_jalan` | Infrastruktur Jalan | Dinas PU |
-| `kesehatan_diare` | Kesehatan — Diare/Air Keruh | Dinas Kesehatan |
+| `kesehatan_diare` | Kesehatan & Sanitasi | Dinas Kesehatan |
 | `pengelolaan_sampah` | Pengelolaan Sampah | Dinas Lingkungan Hidup |
 | `banjir_drainase` | Banjir/Drainase | Dinas PU |
 | `air_bersih_pdam` | Air Bersih/PDAM | PDAM |
@@ -1261,7 +1261,7 @@ Server Next.js memformat `complaint_samples` menjadi daftar bernomor **sebelum m
 
 | Field | Tipe | Keterangan |
 |-------|------|-----------|
-| `category_label` | `string` | Label tampilan kategori (contoh: `"Kesehatan — Diare/Air Keruh"`) |
+| `category_label` | `string` | Label tampilan kategori (contoh: `"Kesehatan & Sanitasi"`) |
 | `region_name` | `string` | Nama desa/kecamatan tempat lonjakan terjadi |
 | `count_24h` | `number` | Jumlah aduan dalam 24 jam terakhir |
 | `mean_14d` | `number` | Rata-rata harian baseline 14 hari |
@@ -1282,7 +1282,7 @@ const complaint_samples_text = samples
 
 ```json
 {
-  "category_label": "Kesehatan — Diare/Air Keruh",
+  "category_label": "Kesehatan & Sanitasi",
   "region_name": "Sumberasih",
   "count_24h": 6,
   "mean_14d": 1.2,
