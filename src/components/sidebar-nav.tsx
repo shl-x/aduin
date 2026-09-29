@@ -1,21 +1,14 @@
-"use client";
-
 /**
  * src/components/sidebar-nav.tsx
  *
  * Sidebar navigasi utama Aduin.
  * Link yang ditampilkan berbeda bergantung role pengguna.
  *
- * Untuk M0, role disimpan di localStorage (state sementara) agar DoD
- * "sidebar menampilkan link berbeda bergantung role" bisa diverifikasi
- * tanpa Supabase Auth.
- *
- * M1 akan mengganti localStorage dengan sesi Supabase.
+ * Role diterima sebagai prop dari layout.tsx (Server Component) yang membaca
+ * sesi Supabase lewat cookie — satu-satunya sumber kebenaran.
+ * Tidak ada localStorage atau client state untuk role.
  */
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
 import {
   MessageSquare,
   LayoutDashboard,
@@ -23,13 +16,12 @@ import {
   Bell,
   ClipboardList,
   BarChart3,
-  ChevronDown,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { SidebarActiveLink } from "@/components/sidebar-active-link";
 
 // ---------------------------------------------------------------------------
-// Tipe
+// Tipe (diekspor agar dipakai di server.ts dan role-switcher)
 // ---------------------------------------------------------------------------
 
 export type UserRole = "warga" | "operator" | "petugas_opd" | "pimpinan";
@@ -81,36 +73,24 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
 };
 
-const ROLE_LABELS: Record<UserRole, string> = {
+export const ROLE_LABELS: Record<UserRole, string> = {
   warga: "Warga",
   operator: "Operator",
   petugas_opd: "Petugas OPD",
   pimpinan: "Pimpinan",
 };
 
-const ALL_ROLES: UserRole[] = ["warga", "operator", "petugas_opd", "pimpinan"];
-
 // ---------------------------------------------------------------------------
-// Komponen
+// Komponen (Server Component — tidak ada "use client")
 // ---------------------------------------------------------------------------
 
-export function SidebarNav() {
-  const pathname = usePathname();
-  const [role, setRole] = useState<UserRole>(() => {
-    // Muat role dari localStorage saat mount (hanya di M0 — nanti diganti Auth)
-    if (typeof window === "undefined") return "operator";
-    const stored = localStorage.getItem("aduin_demo_role") as UserRole | null;
-    return stored && ALL_ROLES.includes(stored) ? stored : "operator";
-  });
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+interface SidebarNavProps {
+  role: UserRole | null;
+}
 
-  function handleRoleChange(newRole: UserRole) {
-    setRole(newRole);
-    localStorage.setItem("aduin_demo_role", newRole);
-    setDropdownOpen(false);
-  }
-
-  const navItems = NAV_ITEMS[role];
+export function SidebarNav({ role }: SidebarNavProps) {
+  const navItems = role ? NAV_ITEMS[role] : [];
+  const roleLabel = role ? ROLE_LABELS[role] : "Pilih role";
 
   return (
     <aside className="flex flex-col w-56 shrink-0 border-r bg-card h-screen sticky top-0 overflow-y-auto">
@@ -126,66 +106,32 @@ export function SidebarNav() {
 
       <Separator />
 
-      {/* Role switcher (demo M0) */}
-      <div className="px-3 py-3 relative">
+      {/* Role aktif (read-only — penggantian role lewat RoleSwitcher di header) */}
+      <div className="px-3 py-3">
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 px-1">
           Role saat ini
         </p>
-        <button
-          type="button"
-          onClick={() => setDropdownOpen((v) => !v)}
-          className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm font-medium bg-muted hover:bg-accent transition-colors"
-          aria-haspopup="listbox"
-          aria-expanded={dropdownOpen}
-        >
-          <span>{ROLE_LABELS[role]}</span>
-          <ChevronDown size={14} className={cn(dropdownOpen && "rotate-180 transition-transform")} />
-        </button>
-
-        {dropdownOpen && (
-          <ul
-            role="listbox"
-            className="absolute left-3 right-3 z-50 mt-1 rounded-md border bg-popover shadow-md text-sm overflow-hidden"
-          >
-            {ALL_ROLES.map((r) => (
-              <li key={r}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={r === role}
-                  onClick={() => handleRoleChange(r)}
-                  className={cn(
-                    "w-full text-left px-3 py-2 hover:bg-accent transition-colors",
-                    r === role && "font-semibold text-primary"
-                  )}
-                >
-                  {ROLE_LABELS[r]}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="flex items-center rounded-md px-3 py-2 text-sm font-medium bg-muted">
+          <span>{roleLabel}</span>
+        </div>
       </div>
 
       <Separator />
 
       {/* Navigasi per role */}
       <nav className="flex-1 px-2 py-3 space-y-0.5">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-              pathname === item.href
-                ? "bg-primary text-primary-foreground font-medium"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-          >
-            {item.icon}
-            {item.label}
-          </Link>
-        ))}
+        {navItems.length === 0 ? (
+          <p className="px-3 py-2 text-xs text-muted-foreground">
+            Login untuk melihat menu.
+          </p>
+        ) : (
+          navItems.map((item) => (
+            <SidebarActiveLink key={item.href} href={item.href}>
+              {item.icon}
+              {item.label}
+            </SidebarActiveLink>
+          ))
+        )}
       </nav>
 
       {/* Footer kecil */}
