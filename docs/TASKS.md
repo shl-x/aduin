@@ -53,18 +53,18 @@
 
 ### Kode (Bob)
 
-- [ ] Tulis migrasi SQL pertama `supabase/migrations/0001_init.sql`: aktifkan ekstensi `pgvector`, buat semua tabel sesuai ARCHITECTURE.md §4 (`regions`, `opd`, `complaints`, `complaint_embeddings`, `clusters`, `triage_results`, `triage_overrides`, `coordination_plans`, `tasks`, `task_dependencies`, `verifications`, `citizen_confirmations`, `alerts`, `alert_dismissals`, `ai_cache`).
-- [ ] Buat tabel `profiles` dengan kolom `id`, `role` (`warga|operator|petugas_opd|pimpinan`), `opd_id` (nullable), `is_demo`, dan trigger `on_auth_user_created` yang mengisi profil default saat user baru dibuat.
-- [ ] Terapkan RLS ke semua tabel sesuai ARCHITECTURE.md §8 (gunakan `auth.uid()` dan join ke `profiles`).
-- [ ] Buat `src/lib/constants/categories.ts`: array `CATEGORIES` berisi semua 7 slug dengan label tampilan dan `opd_default_short_name` sesuai LANGFLOW_FLOWS.md § Referensi Cepat: Kategori Baku.
-- [ ] Buat seed data wilayah (5 kecamatan, ≥ 15 desa) di `supabase/seed/regions.ts`.
-- [ ] Buat seed data OPD (7 OPD sesuai LANGFLOW_FLOWS.md § Referensi Cepat: Daftar OPD Seed) di `supabase/seed/opd.ts`.
-- [ ] Buat seed akun demo di `supabase/seed/accounts.ts`: 5 akun (`warga@demo.aduin`, `operator@demo.aduin`, `pu@demo.aduin`, `dinkes@demo.aduin`, `pimpinan@demo.aduin`) dengan password dari `DEMO_SEED_PASSWORD`.
-- [ ] Buat komponen `<RoleSwitcher />` yang hanya dirender saat `NEXT_PUBLIC_DEMO_MODE=true`; komponen ini memungkinkan login instan antar 5 akun demo dari header.
-- [ ] Buat ±150 aduan seed di `supabase/seed/complaints.ts` — tanpa hasil AI (kolom AI di-set `null`); setiap aduan memiliki `label_manual` dan `is_seed = true`; distribusi sesuai ARCHITECTURE.md §10 (5 kecamatan, semua 7 kategori, semua 8 state yang dibutuhkan demo, lonjakan tersembunyi).
-- [ ] Buat `supabase/seed/index.ts` yang menjalankan semua seed secara berurutan (wilayah → OPD → akun → aduan → `ai_cache` dari snapshot jika ada).
-- [ ] Buat `POST /api/seed/reset` (hanya aktif jika `NEXT_PUBLIC_DEMO_MODE=true`): hapus baris `is_seed = true`, jalankan ulang seed, kembalikan jumlah baris yang di-seed.
-- [ ] Pastikan `npm run build` dan `npm run lint` lulus.
+- [x] Tulis migrasi SQL pertama `supabase/migrations/0001_init.sql`: aktifkan ekstensi `pgvector`, buat semua tabel sesuai ARCHITECTURE.md §4 (`regions`, `opd`, `complaints`, `complaint_embeddings`, `clusters`, `triage_results`, `triage_overrides`, `coordination_plans`, `tasks`, `task_dependencies`, `verifications`, `citizen_confirmations`, `alerts`, `alert_dismissals`, `ai_cache`).
+- [x] Buat tabel `profiles` dengan kolom `id`, `role` (`warga|operator|petugas_opd|pimpinan`), `opd_id` (nullable), `is_demo`, dan trigger `on_auth_user_created` yang mengisi profil default saat user baru dibuat.
+- [x] Terapkan RLS ke semua tabel sesuai ARCHITECTURE.md §8 (gunakan `auth.uid()` dan join ke `profiles`).
+- [x] Buat `src/lib/constants/categories.ts`: array `CATEGORIES` berisi semua 7 slug dengan label tampilan dan `opd_default_short_name` sesuai LANGFLOW_FLOWS.md § Referensi Cepat: Kategori Baku.
+- [x] Buat seed data wilayah (5 kecamatan, ≥ 15 desa) di `supabase/seed/regions.ts`.
+- [x] Buat seed data OPD (7 OPD sesuai LANGFLOW_FLOWS.md § Referensi Cepat: Daftar OPD Seed) di `supabase/seed/opd.ts`.
+- [x] Buat seed akun demo di `supabase/seed/accounts.ts`: 5 akun (`warga@demo.aduin`, `operator@demo.aduin`, `pu@demo.aduin`, `dinkes@demo.aduin`, `pimpinan@demo.aduin`) dengan password dari `DEMO_SEED_PASSWORD`.
+- [x] Buat komponen `<RoleSwitcher />` yang hanya dirender saat `NEXT_PUBLIC_DEMO_MODE=true`; komponen ini memungkinkan login instan antar 5 akun demo dari header.
+- [x] Buat ±150 aduan seed di `supabase/seed/complaints.ts` — tanpa hasil AI (kolom AI di-set `null`); setiap aduan memiliki `label_manual` dan `is_seed = true`; distribusi sesuai ARCHITECTURE.md §10 (5 kecamatan, semua 7 kategori, semua 8 state yang dibutuhkan demo, lonjakan tersembunyi).
+- [x] Buat `supabase/seed/index.ts` yang menjalankan semua seed secara berurutan (wilayah → OPD → akun → aduan → `ai_cache` dari snapshot jika ada).
+- [x] Buat `POST /api/seed/reset` (hanya aktif jika `NEXT_PUBLIC_DEMO_MODE=true`): hapus baris `is_seed = true`, jalankan ulang seed, kembalikan jumlah baris yang di-seed.
+- [x] Pastikan `npm run build` dan `npm run lint` lulus.
 
 ### Definition of Done
 
