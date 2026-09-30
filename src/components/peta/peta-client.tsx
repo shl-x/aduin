@@ -43,6 +43,25 @@ const HANDLING_PATH_OPTIONS = [
   { value: "butuh_data", label: "Butuh Data" },
 ];
 
+/**
+ * Base UI Select.Value hanya bisa menampilkan label item yang sudah
+ * "terdaftar" — normalnya baru terdaftar setelah popup pernah dibuka sekali
+ * (Select.Item hidup di dalam Portal yang lazy-mount). Tanpa `items` di
+ * bawah, nilai awal ("__all__") tampil sebagai teks mentahnya sendiri alih-
+ * alih label "Semua kategori"/"Semua jalur". Meneruskan `items` ke
+ * Select.Root membuat Select.Value bisa resolve label langsung, tanpa
+ * bergantung pada popup pernah dibuka.
+ */
+const CATEGORY_SELECT_ITEMS: Record<string, string> = {
+  [ALL]: "Semua kategori",
+  ...Object.fromEntries(CATEGORIES.map((c) => [c.slug, c.label])),
+};
+
+const HANDLING_PATH_SELECT_ITEMS: Record<string, string> = {
+  [ALL]: "Semua jalur",
+  ...Object.fromEntries(HANDLING_PATH_OPTIONS.map((h) => [h.value, h.label])),
+};
+
 interface PetaClientProps {
   complaints: ComplaintMarker[];
   kecamatanStats: KecamatanStat[];
@@ -82,7 +101,7 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={category} onValueChange={(v) => setCategory(v ?? ALL)}>
+          <Select items={CATEGORY_SELECT_ITEMS} value={category} onValueChange={(v) => setCategory(v ?? ALL)}>
             <SelectTrigger className="w-56">
               <SelectValue placeholder="Semua kategori" />
             </SelectTrigger>
@@ -96,7 +115,11 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
             </SelectContent>
           </Select>
 
-          <Select value={handlingPath} onValueChange={(v) => setHandlingPath(v ?? ALL)}>
+          <Select
+            items={HANDLING_PATH_SELECT_ITEMS}
+            value={handlingPath}
+            onValueChange={(v) => setHandlingPath(v ?? ALL)}
+          >
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Semua jalur" />
             </SelectTrigger>

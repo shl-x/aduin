@@ -14,6 +14,7 @@
 
 import { createClient } from "../../src/lib/supabase/client";
 import { sid } from "./uuid";
+import { KECAMATAN_CENTERS, desaCoordinate } from "./geo";
 
 export interface RegionRow {
   id: string;
@@ -24,195 +25,102 @@ export interface RegionRow {
   lng: number;
 }
 
-// Koordinat berpusat di Kabupaten Probolinggo (~lat -7.75 lng 113.2)
+/**
+ * Koordinat pusat kecamatan (KECAMATAN_CENTERS, lihat geo.ts) diambil dari
+ * Wikipedia bahasa Indonesia per kecamatan — koordinat sebelumnya (versi awal
+ * seed ini) keliru menempatkan semuanya di sekitar Kota Probolinggo, padahal
+ * kelima kecamatan ini ada di Kabupaten Probolinggo (wilayah administratif
+ * berbeda, mengelilingi kota). Koordinat desa dihitung `desaCoordinate()` —
+ * deterministik, 1–3 km dari pusat kecamatannya.
+ */
+function desa(name: string, kecamatanName: string, parentId: string): RegionRow {
+  const center = KECAMATAN_CENTERS[kecamatanName];
+  const { lat, lng } = desaCoordinate(kecamatanName, name, center);
+  return {
+    id: sid(`r-des-${name.toLowerCase().replace(/\s+/g, "-")}`),
+    name,
+    level: "desa",
+    parent_id: parentId,
+    lat,
+    lng,
+  };
+}
+
+const KEC_BANTARAN_ID = sid("r-kec-bantaran");
+const KEC_SUMBERASIH_ID = sid("r-kec-sumberasih");
+const KEC_DRINGU_ID = sid("r-kec-dringu");
+const KEC_WONOMERTO_ID = sid("r-kec-wonomerto");
+const KEC_LECES_ID = sid("r-kec-leces");
+
 export const REGIONS: RegionRow[] = [
   // ── Kecamatan ──────────────────────────────────────────────────────────────
   {
-    id: sid("r-kec-bantaran"),
+    id: KEC_BANTARAN_ID,
     name: "Bantaran",
     level: "kecamatan",
     parent_id: null,
-    lat: -7.7962,
-    lng: 113.1245,
+    lat: KECAMATAN_CENTERS.Bantaran.lat,
+    lng: KECAMATAN_CENTERS.Bantaran.lng,
   },
   {
-    id: sid("r-kec-sumberasih"),
+    id: KEC_SUMBERASIH_ID,
     name: "Sumberasih",
     level: "kecamatan",
     parent_id: null,
-    lat: -7.7651,
-    lng: 113.1845,
+    lat: KECAMATAN_CENTERS.Sumberasih.lat,
+    lng: KECAMATAN_CENTERS.Sumberasih.lng,
   },
   {
-    id: sid("r-kec-dringu"),
+    id: KEC_DRINGU_ID,
     name: "Dringu",
     level: "kecamatan",
     parent_id: null,
-    lat: -7.7453,
-    lng: 113.2234,
+    lat: KECAMATAN_CENTERS.Dringu.lat,
+    lng: KECAMATAN_CENTERS.Dringu.lng,
   },
   {
-    id: sid("r-kec-wonomerto"),
+    id: KEC_WONOMERTO_ID,
     name: "Wonomerto",
     level: "kecamatan",
     parent_id: null,
-    lat: -7.8123,
-    lng: 113.1634,
+    lat: KECAMATAN_CENTERS.Wonomerto.lat,
+    lng: KECAMATAN_CENTERS.Wonomerto.lng,
   },
   {
-    id: sid("r-kec-leces"),
+    id: KEC_LECES_ID,
     name: "Leces",
     level: "kecamatan",
     parent_id: null,
-    lat: -7.7834,
-    lng: 113.2012,
+    lat: KECAMATAN_CENTERS.Leces.lat,
+    lng: KECAMATAN_CENTERS.Leces.lng,
   },
 
   // ── Desa Bantaran ───────────────────────────────────────────────────────────
-  {
-    id: sid("r-des-bantaran"),
-    name: "Bantaran",
-    level: "desa",
-    parent_id: sid("r-kec-bantaran"),
-    lat: -7.7945,
-    lng: 113.1212,
-  },
-  {
-    id: sid("r-des-karanganyar"),
-    name: "Karanganyar",
-    level: "desa",
-    parent_id: sid("r-kec-bantaran"),
-    lat: -7.8023,
-    lng: 113.1289,
-  },
-  {
-    id: sid("r-des-pandean"),
-    name: "Pandean",
-    level: "desa",
-    parent_id: sid("r-kec-bantaran"),
-    lat: -7.7876,
-    lng: 113.1178,
-  },
-  {
-    id: sid("r-des-legundi"),
-    name: "Legundi",
-    level: "desa",
-    parent_id: sid("r-kec-bantaran"),
-    lat: -7.8067,
-    lng: 113.1334,
-  },
+  desa("Bantaran", "Bantaran", KEC_BANTARAN_ID),
+  desa("Karanganyar", "Bantaran", KEC_BANTARAN_ID),
+  desa("Pandean", "Bantaran", KEC_BANTARAN_ID),
+  desa("Legundi", "Bantaran", KEC_BANTARAN_ID),
 
   // ── Desa Sumberasih ─────────────────────────────────────────────────────────
-  {
-    id: sid("r-des-sumberasih"),
-    name: "Sumberasih",
-    level: "desa",
-    parent_id: sid("r-kec-sumberasih"),
-    lat: -7.7623,
-    lng: 113.1812,
-  },
-  {
-    id: sid("r-des-banjarsari"),
-    name: "Banjarsari",
-    level: "desa",
-    parent_id: sid("r-kec-sumberasih"),
-    lat: -7.7698,
-    lng: 113.1889,
-  },
-  {
-    id: sid("r-des-lemahkembar"),
-    name: "Lemahkembar",
-    level: "desa",
-    parent_id: sid("r-kec-sumberasih"),
-    lat: -7.7567,
-    lng: 113.1756,
-  },
-  {
-    id: sid("r-des-clarak"),
-    name: "Clarak",
-    level: "desa",
-    parent_id: sid("r-kec-sumberasih"),
-    lat: -7.7734,
-    lng: 113.1923,
-  },
+  desa("Sumberasih", "Sumberasih", KEC_SUMBERASIH_ID),
+  desa("Banjarsari", "Sumberasih", KEC_SUMBERASIH_ID),
+  desa("Lemahkembar", "Sumberasih", KEC_SUMBERASIH_ID),
+  desa("Clarak", "Sumberasih", KEC_SUMBERASIH_ID),
 
   // ── Desa Dringu ─────────────────────────────────────────────────────────────
-  {
-    id: sid("r-des-dringu"),
-    name: "Dringu",
-    level: "desa",
-    parent_id: sid("r-kec-dringu"),
-    lat: -7.7423,
-    lng: 113.2198,
-  },
-  {
-    id: sid("r-des-pabean"),
-    name: "Pabean",
-    level: "desa",
-    parent_id: sid("r-kec-dringu"),
-    lat: -7.7489,
-    lng: 113.2267,
-  },
-  {
-    id: sid("r-des-sumberkedawung"),
-    name: "Sumberkedawung",
-    level: "desa",
-    parent_id: sid("r-kec-dringu"),
-    lat: -7.7512,
-    lng: 113.2145,
-  },
+  desa("Dringu", "Dringu", KEC_DRINGU_ID),
+  desa("Pabean", "Dringu", KEC_DRINGU_ID),
+  desa("Sumberkedawung", "Dringu", KEC_DRINGU_ID),
 
   // ── Desa Wonomerto ──────────────────────────────────────────────────────────
-  {
-    id: sid("r-des-wonomerto"),
-    name: "Wonomerto",
-    level: "desa",
-    parent_id: sid("r-kec-wonomerto"),
-    lat: -7.8098,
-    lng: 113.1612,
-  },
-  {
-    id: sid("r-des-sumber"),
-    name: "Sumber",
-    level: "desa",
-    parent_id: sid("r-kec-wonomerto"),
-    lat: -7.8156,
-    lng: 113.1678,
-  },
-  {
-    id: sid("r-des-patalan"),
-    name: "Patalan",
-    level: "desa",
-    parent_id: sid("r-kec-wonomerto"),
-    lat: -7.8034,
-    lng: 113.1589,
-  },
+  desa("Wonomerto", "Wonomerto", KEC_WONOMERTO_ID),
+  desa("Sumber", "Wonomerto", KEC_WONOMERTO_ID),
+  desa("Patalan", "Wonomerto", KEC_WONOMERTO_ID),
 
   // ── Desa Leces ──────────────────────────────────────────────────────────────
-  {
-    id: sid("r-des-leces"),
-    name: "Leces",
-    level: "desa",
-    parent_id: sid("r-kec-leces"),
-    lat: -7.7812,
-    lng: 113.1978,
-  },
-  {
-    id: sid("r-des-warujinggo"),
-    name: "Warujinggo",
-    level: "desa",
-    parent_id: sid("r-kec-leces"),
-    lat: -7.7867,
-    lng: 113.2056,
-  },
-  {
-    id: sid("r-des-tigasan"),
-    name: "Tigasan",
-    level: "desa",
-    parent_id: sid("r-kec-leces"),
-    lat: -7.7745,
-    lng: 113.1934,
-  },
+  desa("Leces", "Leces", KEC_LECES_ID),
+  desa("Warujinggo", "Leces", KEC_LECES_ID),
+  desa("Tigasan", "Leces", KEC_LECES_ID),
 ];
 
 export async function seedRegions(): Promise<void> {
