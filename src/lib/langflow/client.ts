@@ -12,15 +12,17 @@
  * Urutan ini mengikuti docs/LANGFLOW_FLOWS.md §"Catatan Implementasi untuk client.ts".
  */
 
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import type { ZodType } from "zod";
 import { getFlowId, LANGFLOW_FLOW_LABELS, type FlowName } from "./flows";
 import { createClient as createSupabaseAdminClient } from "@/lib/supabase/client";
 import {
   clarifyOutputSchema,
   triageOutputSchema,
+  embedOutputSchema,
   type ClarifyOutput,
   type TriageOutput,
+  type EmbedOutput,
 } from "./schemas";
 
 const BASE_URL = process.env.LANGFLOW_BASE_URL ?? "http://127.0.0.1:7860";
@@ -104,6 +106,23 @@ export async function runTriage(input: {
     return await runFlow("triage", input, triageOutputSchema);
   } catch (err) {
     console.error("[Langflow] aduin-triage gagal:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
+ * Flow 3 — aduin-embed. Menghasilkan vektor embedding 768 dimensi dari teks aduan.
+ * @returns hasil typed, atau `null` jika Langflow gagal / output invalid
+ *          (embedding tidak boleh menggagalkan pipeline triage — lihat
+ *          src/lib/services/triage.ts).
+ */
+export async function runEmbed(input: {
+  complaint_text: string;
+}): Promise<EmbedOutput | null> {
+  try {
+    return await runFlow("embed", input, embedOutputSchema);
+  } catch (err) {
+    console.error("[Langflow] aduin-embed gagal:", err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -255,6 +274,10 @@ async function callLangflow(
         input_value: inputValue,
         output_type: "chat",
         input_type: "chat",
+        // Session unik per panggilan — mencegah Langflow mengakumulasi riwayat
+        // percakapan antar aduan yang tidak berhubungan (flow-flow ini stateless
+        // JSON-in/JSON-out, tidak memakai komponen Memory).
+        session_id: randomUUID(),
       }),
       signal: controller.signal,
     });

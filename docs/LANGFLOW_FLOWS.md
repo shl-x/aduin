@@ -19,7 +19,7 @@
 | LLM default (clarify, triage, opd-agent, alert-summary) | `ibm/granite-4-h-small` | Cek ketersediaan di akun |
 | Alternatif LLM (jika `granite-4-h-small` tidak tersedia) | `ibm/granite-3-3-8b-instruct` | Fallback manual |
 | Vision (aduin-verify) | `ibm/granite-vision-3-3-2b` | Untuk analisis foto |
-| Embedding (aduin-embed) | `intfloat/multilingual-e5-large` | 1024 dimensi |
+| Embedding (aduin-embed) | `ibm/granite-embedding-278m-multilingual` | 768 dimensi |
 
 ---
 
@@ -377,11 +377,11 @@ Chat Output
 
 ### Tujuan
 
-Menghasilkan vektor embedding 1024 dimensi untuk teks aduan menggunakan model `intfloat/multilingual-e5-large`. Vektor ini disimpan di `complaint_embeddings` dan digunakan oleh algoritma clustering (§5.1 ARCHITECTURE.md).
+Menghasilkan vektor embedding 768 dimensi untuk teks aduan menggunakan model `ibm/granite-embedding-278m-multilingual`. Vektor ini disimpan di `complaint_embeddings` dan digunakan oleh algoritma clustering (§5.1 ARCHITECTURE.md).
 
 Dipanggil dari: `POST /api/triage/[id]` — setelah triage berhasil, sebelum clustering.
 
-> **Konvensi model e5:** Model `multilingual-e5-large` menggunakan awalan teks untuk membedakan konteks. Untuk teks yang akan diindeks (bukan query pencarian), gunakan awalan **`passage: `** sebelum teks. Awalan ini ditambahkan oleh Custom Component di Langflow, **bukan** di kode Next.js.
+> **Catatan model:** `ibm/granite-embedding-278m-multilingual` tidak memakai konvensi awalan `"query: "`/`"passage: "` seperti model keluarga e5 (`multilingual-e5-large`). Teks dikirim apa adanya ke `embed_query()` tanpa prefiks tambahan.
 
 ### Format Input
 
@@ -398,7 +398,7 @@ Dipanggil dari: `POST /api/triage/[id]` — setelah triage berhasil, sebelum clu
 
 | Field | Tipe | Keterangan |
 |-------|------|-----------|
-| `complaint_text` | `string` | Teks aduan asli (tanpa awalan; awalan `"passage: "` ditambahkan oleh Custom Component) |
+| `complaint_text` | `string` | Teks aduan asli |
 
 **Contoh:**
 
@@ -414,8 +414,8 @@ Dipanggil dari: `POST /api/triage/[id]` — setelah triage berhasil, sebelum clu
 
 ```typescript
 {
-  embedding: number[];   // array 1024 float, nilai antara -1.0 dan 1.0
-  model_version: string; // "multilingual-e5-large"
+  embedding: number[];   // array 768 float
+  model_version: string; // "ibm/granite-embedding-278m-multilingual"
 }
 ```
 
@@ -423,8 +423,8 @@ Dipanggil dari: `POST /api/triage/[id]` — setelah triage berhasil, sebelum clu
 
 ```json
 {
-  "embedding": [0.0234, -0.1823, 0.0541, "...1021 nilai lainnya..."],
-  "model_version": "multilingual-e5-large"
+  "embedding": [0.0234, -0.1823, 0.0541, "...765 nilai lainnya..."],
+  "model_version": "ibm/granite-embedding-278m-multilingual"
 }
 ```
 
@@ -432,141 +432,93 @@ Dipanggil dari: `POST /api/triage/[id]` — setelah triage berhasil, sebelum clu
 
 ```typescript
 export const embedOutputSchema = z.object({
-  embedding: z.array(z.number()).length(1024),
+  embedding: z.array(z.number()).length(768),
   model_version: z.string(),
 });
 export type EmbedOutput = z.infer<typeof embedOutputSchema>;
 ```
 
-> Jika dimensi embedding berubah (misal ganti model ke 768 dimensi), update `EMBEDDING_DIMENSION` di `.env.local`, jalankan migrasi DB untuk mengubah dimensi kolom `vector()`, dan re-embed semua aduan existing.
+> Jika model/dimensi embedding berubah, update `EMBEDDING_DIMENSION` di `.env.local`, jalankan migrasi DB untuk mengubah dimensi kolom `vector()`, dan re-embed semua aduan existing (`supabase/seed/embed-seed.ts` idempoten untuk aduan seed; aduan non-seed perlu re-embed manual).
 
 ### Susunan Komponen Langflow
 
-Flow ini menggunakan **dua komponen saja**: Chat Input dan satu Custom Component Python yang menangani semua langkah secara internal. Tidak ada komponen Prompt atau LLM.
+Flow ini memakai komponen bawaan **IBM watsonx.ai Embeddings** untuk memanggil watsonx.ai (bukan `httpx`/IAM token manual) dan satu Custom Component Python tipis yang hanya mengekstrak `complaint_text` dari JSON input dan memformat hasilnya kembali sebagai JSON.
 
 ```
 Chat Input
     │  (JSON string dengan complaint_text)
-    ▼
-Custom Component Python — AduinEmbedder
-    │  1. Parse complaint_text dari input JSON
-    │  2. Tambahkan awalan "passage: " ke teks
-    │  3. Inisialisasi IBM watsonx.ai Embeddings dengan Global Variables
-    │  4. Panggil embed_query() pada teks dengan awalan
-    │  5. Kembalikan JSON {"embedding": [...], "model_version": "..."} sebagai Message
+    ├──────────────────────────────────────┐
+    ▼                                       ▼
+IBM watsonx.ai Embeddings          (teks JSON diteruskan apa adanya)
+    │  Model: ibm/granite-embedding-278m-multilingual
+    │  Kredensial: Global Variables WATSONX_API_KEY / WATSONX_PROJECT_ID
+    │  Endpoint: https://jp-tok.ml.cloud.ibm.com
+    │  Output: handle "Embeddings" (bukan vektor langsung)
+    │
+    ▼ (handle Embeddings)
+Custom Component Python — Aduin Embed JSON
+    │  1. Parse complaint_text dari input JSON (fallback ke teks mentah jika parse gagal)
+    │  2. Panggil embedding_model.embed_query(text) — embedding_model adalah handle
+    │     dari komponen IBM watsonx.ai Embeddings di atas
+    │  3. Kembalikan JSON {"embedding": [...], "model_version": "..."} sebagai Message
     ▼
 Chat Output
 ```
 
-**Custom Component Python — Kode Lengkap:**
+**Custom Component Python — Kode Lengkap (persis seperti yang dipakai di Langflow):**
 
 ```python
-"""
-aduin-embed Custom Component
-Versi Langflow: 1.x (periksa kompatibilitas nama kelas jika menggunakan versi lain)
-
-Input yang diterima:
-  - chat_input: MessageTextInput — JSON string dari Chat Input
-    Format: {"complaint_text": "..."}
-
-Output yang dikembalikan:
-  - Message dengan .text berisi JSON string:
-    {"embedding": [...], "model_version": "multilingual-e5-large"}
-
-Verifikasi sebelum deploy:
-  - Nama kelas import: WatsonxEmbeddings atau IBMWatsonxAIEmbeddings
-    (bergantung versi langchain-ibm yang terpasang)
-  - Nama parameter konstruktor: url, project_id, apikey
-    (atau watsonx_url, watsonx_project_id, watsonx_apikey — cek versi)
-  - Nama metode embed: embed_query(text) atau embed_documents([text])[0]
-"""
+import json
 
 from langflow.custom import Component
-from langflow.io import MessageTextInput, Output
+from langflow.io import HandleInput, MessageTextInput, Output
 from langflow.schema.message import Message
-import json
-import os
 
 
-class AduinEmbedder(Component):
-    display_name = "Aduin Embedder"
-    description = (
-        "Reads complaint_text from input JSON, prepends 'passage: ', "
-        "calls IBM watsonx.ai multilingual-e5-large, returns embedding as JSON Message."
-    )
+class AduinEmbedJSON(Component):
+    display_name = "Aduin Embed JSON"
+    description = "Mengubah teks aduan menjadi vektor embedding dalam format JSON."
+    icon = "binary"
 
     inputs = [
+        HandleInput(
+            name="embedding_model",
+            display_name="Embedding Model",
+            input_types=["Embeddings"],
+            required=True,
+        ),
         MessageTextInput(
-            name="chat_input",
-            display_name="Chat Input (JSON)",
-            info='JSON string: {"complaint_text": "..."}',
+            name="input_text",
+            display_name="Input JSON",
+            required=True,
         ),
     ]
 
     outputs = [
-        Output(display_name="Embedding JSON", name="output", method="run_embed"),
+        Output(display_name="JSON", name="json_output", method="build_output"),
     ]
 
-    def run_embed(self) -> Message:
-        # --- 1. Parse input ---
-        raw = self.chat_input
-        if hasattr(raw, "text"):
-            raw = raw.text
-        data = json.loads(str(raw))
-        complaint_text: str = data["complaint_text"]
-
-        # --- 2. Tambahkan awalan e5 ---
-        text_with_prefix = f"passage: {complaint_text}"
-
-        # --- 3. Ambil kredensial dari environment (Langflow Global Variables) ---
-        api_key = os.environ.get("WATSONX_API_KEY", "")
-        project_id = os.environ.get("WATSONX_PROJECT_ID", "")
-        url = os.environ.get("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
-
-        if not api_key or not project_id:
-            raise ValueError(
-                "WATSONX_API_KEY dan WATSONX_PROJECT_ID harus diset "
-                "sebagai Global Variables di Langflow."
-            )
-
-        # --- 4. Inisialisasi embedding model ---
-        # CATATAN: Nama kelas bergantung versi langchain-ibm yang terpasang.
-        # Coba import WatsonxEmbeddings terlebih dahulu; jika gagal, coba IBMWatsonxAIEmbeddings.
+    def build_output(self) -> Message:
+        raw = self.input_text
         try:
-            from langchain_ibm import WatsonxEmbeddings
-            embeddings = WatsonxEmbeddings(
-                model_id="intfloat/multilingual-e5-large",
-                url=url,
-                project_id=project_id,
-                apikey=api_key,
-            )
-        except ImportError:
-            # Fallback untuk versi langchain-ibm lebih lama
-            from langchain_ibm import IBMWatsonxAIEmbeddings  # type: ignore
-            embeddings = IBMWatsonxAIEmbeddings(
-                model_id="intfloat/multilingual-e5-large",
-                watsonx_url=url,
-                watsonx_project_id=project_id,
-                watsonx_apikey=api_key,
-            )
+            text = json.loads(raw).get("complaint_text", raw)
+        except (json.JSONDecodeError, AttributeError):
+            text = raw
 
-        # --- 5. Panggil embedding ---
-        # embed_query mengembalikan List[float]
-        vector: list[float] = embeddings.embed_query(text_with_prefix)
-
-        # --- 6. Serialisasi dan kembalikan sebagai Message ---
-        result = json.dumps({
-            "embedding": vector,
-            "model_version": "multilingual-e5-large",
-        })
-        return Message(text=result)
+        vector = self.embedding_model.embed_query(text)
+        result = {
+            "embedding": [float(x) for x in vector],
+            "model_version": "ibm/granite-embedding-278m-multilingual",
+        }
+        self.status = f"{len(vector)} dimensi"
+        return Message(text=json.dumps(result))
 ```
 
-> **Catatan verifikasi wajib sebelum deploy:**
-> 1. Periksa nama kelas import (`WatsonxEmbeddings` vs `IBMWatsonxAIEmbeddings`) dengan menjalankan `python -c "from langchain_ibm import WatsonxEmbeddings"` di environment Langflow.
-> 2. Periksa nama parameter konstruktor di dokumentasi versi `langchain-ibm` yang terpasang.
-> 3. Jika `embed_query` tidak tersedia, gunakan `embed_documents([text_with_prefix])[0]`.
-> 4. Global Variables `WATSONX_API_KEY`, `WATSONX_PROJECT_ID`, `WATSONX_URL` harus sudah dibuat di Langflow Settings → Global Variables.
+> **Wiring di Langflow UI:**
+> 1. Tambahkan komponen **IBM watsonx.ai Embeddings**, set `Model Name` = `ibm/granite-embedding-278m-multilingual`, `watsonx API Endpoint` sesuai region akun, `Watsonx API Key` dan `watsonx Project_ID` merujuk ke Global Variables `WATSONX_API_KEY`/`WATSONX_PROJECT_ID`.
+> 2. Tambahkan Custom Component di atas, sambungkan output **Embedding Model** dari komponen watsonx.ai ke input **Embedding Model** (`embedding_model`) Custom Component.
+> 3. Sambungkan **Chat Input** → input **Input JSON** (`input_text`) Custom Component.
+> 4. Sambungkan output **JSON** (`json_output`) Custom Component → **Chat Output**.
 
 ### Fallback
 
@@ -578,17 +530,23 @@ class AduinEmbedder(Component):
 
 **TC-1: Teks pendek**
 - Input: `{"complaint_text": "Jalan rusak di Bantaran"}`
-- Output yang diharapkan: `{"embedding": [...1024 nilai float...], "model_version": "multilingual-e5-large"}`
-- Validasi: `embedding.length === 1024`, semua nilai adalah number
+- Output yang diharapkan: `{"embedding": [...768 nilai float...], "model_version": "ibm/granite-embedding-278m-multilingual"}`
+- Validasi: `embedding.length === 768`, semua nilai adalah number
 
 **TC-2: Teks panjang dengan bahasa campuran**
 - Input: `{"complaint_text": "Banjir ndak surut-surut, wis rong dino iki banyu mlebu omah, tolong Pak segera ditangani sebelum lebih parah di Desa Pabean"}`
-- Output yang diharapkan: embedding valid 1024 dimensi
+- Output yang diharapkan: embedding valid 768 dimensi
 - Validasi: semua nilai adalah float, tidak ada NaN atau Infinity
 
-**TC-3: Teks dengan nama tempat lokal**
-- Input: `{"complaint_text": "Sampah di belakang pasar Dringu sudah menumpuk, mohon segera diangkut"}`
-- Output yang diharapkan: embedding valid; `model_version = "multilingual-e5-large"`
+**TC-3: Dua aduan serupa (jalan rusak)**
+- Input A: `{"complaint_text": "Jalan di depan SDN 1 Bantaran berlubang besar sudah seminggu"}`
+- Input B: `{"complaint_text": "Lubang jalan di Jl. Raya Bantaran km 3 sangat berbahaya"}`
+- Validasi: cosine similarity antar embedding A dan B tinggi (≥ `CLUSTER_SIMILARITY_THRESHOLD` = 0.75) — keduanya soal jalan rusak di lokasi berdekatan
+
+**TC-4: Dua aduan kategori berbeda**
+- Input A: `{"complaint_text": "Jalan di depan SDN 1 Bantaran berlubang besar sudah seminggu"}`
+- Input C: `{"complaint_text": "Sudah 3 hari air PDAM keruh, anak-anak di kampung banyak yang diare"}`
+- Validasi: cosine similarity antar embedding A dan C rendah (di bawah threshold) — kategori berbeda (jalan vs kesehatan)
 
 ---
 

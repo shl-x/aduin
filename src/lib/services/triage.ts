@@ -12,13 +12,15 @@
  *      status = 'triaged', buat coordination_plan sederhana (plan_type='simple')
  *      berisi satu task ke effective_opd_id.
  *
- * Embedding (aduin-embed) sengaja belum dipanggil di sini — itu scope M3.
- * LANGFLOW_FLOW_EMBED_ID kosong di M2 sehingga langkah ini dilewati begitu saja
- * (tidak ada kode yang mereferensikannya sampai M3 dibangun).
+ * Setelah triage sukses, pipeline juga memanggil aduin-embed lalu
+ * menjalankan clustering untuk aduan tersebut (ARCHITECTURE.md §5.1).
+ * Kegagalan embedding/clustering TIDAK BOLEH menggagalkan triage — keduanya
+ * dibungkus try/catch terpisah di embedAndCluster().
  */
 
 import { createClient } from "@/lib/supabase/client";
-import { runTriage } from "@/lib/langflow/client";
+import { runTriage, runEmbed } from "@/lib/langflow/client";
+import { runClustering } from "@/lib/analytics/clustering";
 import type { TriageOutput } from "@/lib/langflow/schemas";
 
 export interface TriagePipelineResult {
@@ -89,7 +91,44 @@ export async function runTriagePipeline(complaintId: string): Promise<TriagePipe
 
   await createSimpleCoordinationPlan(supabase, complaintId, opd.id, triage);
 
+  await embedAndCluster(supabase, complaintId, complaint.text);
+
   return { status: "triaged", triage };
+}
+
+/**
+ * Membuat embedding (aduin-embed) lalu menjalankan clustering untuk aduan
+ * yang baru selesai di-triage. Best-effort: kegagalan di langkah manapun
+ * hanya di-log, tidak pernah melempar ke pemanggil (runTriagePipeline sudah
+ * mengembalikan status "triaged" sebelum fungsi ini dipanggil).
+ */
+async function embedAndCluster(
+  supabase: ReturnType<typeof createClient>,
+  complaintId: string,
+  complaintText: string
+): Promise<void> {
+  try {
+    const embed = await runEmbed({ complaint_text: complaintText });
+    if (!embed) return;
+
+    const { error: embedErr } = await supabase.from("complaint_embeddings").upsert(
+      {
+        complaint_id: complaintId,
+        embedding: embed.embedding,
+        model_version: embed.model_version,
+      },
+      { onConflict: "complaint_id" }
+    );
+
+    if (embedErr) {
+      console.error(`[triage] Gagal menyimpan embedding aduan ${complaintId}:`, embedErr.message);
+      return;
+    }
+
+    await runClustering(complaintId);
+  } catch (err) {
+    console.error(`[triage] Pipeline embedding/clustering gagal untuk aduan ${complaintId}:`, err);
+  }
 }
 
 /**

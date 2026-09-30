@@ -55,3 +55,19 @@ export const triageOutputSchema = z.object({
   reason: z.string().min(10),
 });
 export type TriageOutput = z.infer<typeof triageOutputSchema>;
+
+// ---------------------------------------------------------------------------
+// Flow 3 — aduin-embed
+// ---------------------------------------------------------------------------
+
+/**
+ * Dimensi harus persis sama dengan EMBEDDING_DIMENSION (.env.local) dan
+ * kolom complaint_embeddings.embedding (vector(768)) — lihat
+ * docs/LANGFLOW_FLOWS.md §Flow 3. Model aktual di flow aduin-embed adalah
+ * ibm/granite-embedding-278m-multilingual (768 dimensi).
+ */
+export const embedOutputSchema = z.object({
+  embedding: z.array(z.number()).length(768),
+  model_version: z.string(),
+});
+export type EmbedOutput = z.infer<typeof embedOutputSchema>;

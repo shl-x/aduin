@@ -126,22 +126,22 @@
 ### Langflow (manual di UI)
 
 **Flow `aduin-embed`:**
-- [ ] Buat flow baru bernama `aduin-embed` di UI Langflow.
-- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 3: **Chat Input** → komponen embedding `intfloat/multilingual-e5-large` (atau Custom Component yang memanggil watsonx.ai embedding) → **Chat Output** yang mengembalikan vektor JSON.
-- [ ] Tes di Playground dengan test cases dari LANGFLOW_FLOWS.md §Flow 3 (TC-1 jalan rusak, TC-2 sampah, TC-3 dua aduan serupa, TC-4 dua aduan berbeda kategori); verifikasi vektor bertipe array 1024 angka float.
-- [ ] Setelah semua TC lulus, export flow ke `langflow/flows/aduin-embed.json`.
-- [ ] Catat Flow ID ke `.env.local` sebagai `LANGFLOW_FLOW_EMBED_ID`.
+- [x] Buat flow baru bernama `aduin-embed` di UI Langflow.
+- [x] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 3: **Chat Input** → komponen embedding `ibm/granite-embedding-278m-multilingual` (Custom Component yang memanggil watsonx.ai embedding) → **Chat Output** yang mengembalikan vektor JSON.
+- [x] Tes di Playground dengan test cases dari LANGFLOW_FLOWS.md §Flow 3 (TC-1 jalan rusak, TC-2 sampah, TC-3 dua aduan serupa, TC-4 dua aduan berbeda kategori); verifikasi vektor bertipe array 768 angka float.
+- [x] Setelah semua TC lulus, export flow ke `langflow/flows/aduin-embed.json`.
+- [x] Catat Flow ID ke `.env.local` sebagai `LANGFLOW_FLOW_EMBED_ID`.
 
 ### Kode (Bob)
 
-- [ ] Tambahkan `embedOutputSchema` ke `src/lib/langflow/schemas.ts`: validasi array 1024 angka float.
-- [ ] Tambahkan fungsi `runEmbed()` ke `src/lib/langflow/client.ts`.
-- [ ] Perbarui pipeline `POST /api/triage/[id]`: setelah triage berhasil, panggil `runEmbed()`, simpan vektor ke `complaint_embeddings`; jika gagal, log error tapi jangan gagalkan triage.
-- [ ] Buat `src/lib/analytics/clustering.ts`: fungsi `runClustering()` yang membaca `complaint_embeddings` + koordinat + timestamp, mengelompokkan aduan berdasarkan cosine similarity ≥ `CLUSTER_SIMILARITY_THRESHOLD`, jarak ≤ `CLUSTER_RADIUS_METERS`, dan rentang waktu ≤ `CLUSTER_WINDOW_DAYS`; simpan ke tabel `clusters`.
-- [ ] Buat `POST /api/cluster`: trigger `runClustering()` (dipanggil setiap aduan baru masuk atau manual oleh operator).
-- [ ] Buat `GET /api/cluster`: kembalikan data cluster (centroid, jumlah anggota, label, kategori) untuk peta.
-- [ ] Buat halaman peta `src/app/(operator)/peta/page.tsx` dengan Leaflet: marker individual per aduan (warna per kategori), choropleth per kecamatan (warna berdasarkan jumlah aduan aktif); loading state dan empty state; klik marker tampilkan ringkasan aduan di popup.
-- [ ] Pastikan `npm run build` dan `npm run lint` lulus.
+- [x] Tambahkan `embedOutputSchema` ke `src/lib/langflow/schemas.ts`: validasi array 768 angka float.
+- [x] Tambahkan fungsi `runEmbed()` ke `src/lib/langflow/client.ts`.
+- [x] Perbarui pipeline `POST /api/triage/[id]`: setelah triage berhasil, panggil `runEmbed()`, simpan vektor ke `complaint_embeddings`; jika gagal, log error tapi jangan gagalkan triage.
+- [x] Buat `src/lib/analytics/clustering.ts`: fungsi `runClustering()` yang membaca `complaint_embeddings` + koordinat + timestamp, mengelompokkan aduan berdasarkan cosine similarity ≥ `CLUSTER_SIMILARITY_THRESHOLD`, jarak ≤ `CLUSTER_RADIUS_METERS`, dan rentang waktu ≤ `CLUSTER_WINDOW_DAYS`; simpan ke tabel `clusters`.
+- [x] Buat `POST /api/cluster`: trigger `runClustering()` (dipanggil setiap aduan baru masuk atau manual oleh operator).
+- [x] Buat `GET /api/cluster`: kembalikan data cluster (centroid, jumlah anggota, label, kategori) untuk peta.
+- [x] Buat halaman peta `src/app/(operator)/peta/page.tsx` dengan Leaflet: marker individual per aduan (warna per kategori), lingkaran per kecamatan (warna/ukuran berdasarkan jumlah aduan aktif — pengganti choropleth karena tidak ada GeoJSON batas wilayah); filter kategori + jalur; loading state dan empty state; klik marker tampilkan ringkasan aduan + anggota cluster-nya di popup.
+- [x] Pastikan `npm run build` dan `npm run lint` lulus.
 
 ### Definition of Done
 
