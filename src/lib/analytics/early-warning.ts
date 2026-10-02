@@ -12,18 +12,24 @@
  *   - POST /api/alert/check            (semua kombinasi)
  *   - supabase/seed/refresh-demo-timeline.ts
  *
- * Aturan deduplikasi (satu alert per lonjakan):
+ * Aturan deduplikasi (satu alert AKTIF per kombinasi):
  *   - Ada alert belum ditutup untuk kombinasi yang sama → statistiknya
  *     diperbarui (triggered_at ikut diperbarui jika alert itu sudah > 24 jam,
  *     artinya lonjakan baru). Tidak membuat alert ganda.
- *   - Alert kombinasi itu ditutup operator < 24 jam lalu → dilewati.
- *   - Selain itu → alert baru (summary_status 'pending_retry'), lalu
- *     ringkasan AI di-await dengan timeout; berhasil → 'done'.
+ *   - Tidak ada alert aktif (belum pernah ada, atau semuanya sudah ditutup
+ *     operator) → alert baru (summary_status 'pending_retry'), lalu ringkasan
+ *     AI di-await dengan timeout; berhasil → 'done'. Jadi jika lonjakan masih
+ *     terdeteksi setelah alert ditutup, deteksi berikutnya membuat alert baru.
+ *
+ * alert_dismissals.alert_id bersifat UNIQUE, sehingga relasi embedded
+ * `alert_dismissals` dikembalikan Supabase sebagai objek tunggal/null, bukan
+ * array — selalu normalkan dengan toArray() sebelum dibaca.
  */
 
 import type { createClient } from "@/lib/supabase/client";
 import { runAlertSummary } from "@/lib/langflow/client";
 import { CATEGORIES } from "@/lib/constants/categories";
+import { toArray } from "@/lib/supabase/relations";
 
 type AdminClient = ReturnType<typeof createClient>;
 
@@ -41,7 +47,7 @@ interface WindowStats {
   baseline_days: number;
 }
 
-export type EarlyWarningAction = "created" | "updated" | "skipped_dismissed" | "below_threshold";
+export type EarlyWarningAction = "created" | "updated" | "below_threshold";
 
 export interface EarlyWarningOutcome {
   category: string;
@@ -106,7 +112,7 @@ async function evaluate(
 
   const { data: existing, error: existingErr } = await supabase
     .from("alerts")
-    .select("id, triggered_at, summary_status, alert_dismissals(dismissed_at)")
+    .select("id, triggered_at, summary_status, alert_dismissals(id)")
     .eq("category", stats.category)
     .eq("region_id", stats.region_id)
     .order("triggered_at", { ascending: false })
@@ -117,10 +123,10 @@ async function evaluate(
     id: string;
     triggered_at: string;
     summary_status: "done" | "pending_retry";
-    alert_dismissals: { dismissed_at: string }[] | null;
+    alert_dismissals: { id: string } | { id: string }[] | null;
   }[];
 
-  const active = rows.find((r) => !r.alert_dismissals || r.alert_dismissals.length === 0);
+  const active = rows.find((r) => toArray(r.alert_dismissals).length === 0);
   if (active) {
     const stale = now.getTime() - new Date(active.triggered_at).getTime() > DAY_MS;
     const { error: updateErr } = await supabase
@@ -141,11 +147,6 @@ async function evaluate(
     }
     return { ...base, action: "updated", alert_id: active.id, summary_status: summaryStatus };
   }
-
-  const recentlyDismissed = rows.some((r) =>
-    (r.alert_dismissals ?? []).some((d) => now.getTime() - new Date(d.dismissed_at).getTime() < DAY_MS)
-  );
-  if (recentlyDismissed) return { ...base, action: "skipped_dismissed" };
 
   const { data: inserted, error: insertErr } = await supabase
     .from("alerts")
@@ -297,7 +298,7 @@ export async function getActiveAlerts(supabase: AdminClient): Promise<ActiveAler
   if (error) throw new Error(`Gagal memuat alert: ${error.message}`);
 
   return (data ?? [])
-    .filter((a) => !a.alert_dismissals || (a.alert_dismissals as unknown[]).length === 0)
+    .filter((a) => toArray(a.alert_dismissals as unknown).length === 0)
     .map((a) => {
       const region = a.region as unknown as { name: string; parent: { name: string } | null } | null;
       return {

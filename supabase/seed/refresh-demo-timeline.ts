@@ -13,7 +13,8 @@
  *
  * Aman dijalankan berulang kali (termasuk di hari demo): selisih dihitung
  * ulang setiap kali, sehingga run kedua menghasilkan selisih ≈ 0 dan
- * pergeseran dilewati. Alert yang sudah ada diperbarui, bukan diduplikasi.
+ * pergeseran dilewati. Alert aktif diperbarui, bukan diduplikasi; jika
+ * alert sebelumnya sudah ditutup dan lonjakan masih ada, alert baru dibuat.
  *
  * Prasyarat: migrasi supabase/migrations/0004_early_warning.sql sudah
  * diterapkan.
@@ -94,7 +95,6 @@ async function main(): Promise<void> {
     const label = {
       created: "BARU",
       updated: "DIPERBARUI",
-      skipped_dismissed: "DILEWATI (ditutup < 24 jam lalu)",
       below_threshold: "",
     }[o.action];
     console.log(

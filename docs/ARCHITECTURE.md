@@ -614,14 +614,14 @@ if z < ALERT_THRESHOLD_Z or count_24h < ALERT_MIN_COUNT: selesai
 if ada alert BELUM ditutup untuk (category, region_id):
     perbarui count_24h / mean / std / z  (triggered_at ikut diperbarui jika alert > 24 jam)
     jika summary_status = 'pending_retry' → coba ringkas ulang
-elif alert kombinasi itu ditutup operator < 24 jam lalu:
-    lewati (sudah ditangani)
-else:
+else:   # belum pernah ada alert, atau semua alert kombinasi ini sudah ditutup
     insert alerts (summary_status = 'pending_retry')
     await runAlertSummary(...) dengan timeout LANGFLOW_ALERT_TIMEOUT_MS
     berhasil → ai_summary, ai_recommendations, summary_status = 'done'
     gagal    → tetap 'pending_retry' (tombol "Coba Lagi" di /alert)
 ```
+
+> `alert_dismissals.alert_id` bersifat UNIQUE, sehingga relasi embedded `alert_dismissals` dikembalikan Supabase sebagai objek tunggal atau `null` (bukan array). Kode membacanya lewat `toArray()` (`src/lib/supabase/relations.ts`).
 
 **Kapan dijalankan:**
 - Setelah triage berhasil (`src/lib/services/triage.ts`) — hanya untuk kombinasi kategori + wilayah aduan tersebut; best-effort, tidak menggagalkan triage.
