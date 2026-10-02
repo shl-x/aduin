@@ -904,7 +904,7 @@ Aduin Verify Vision (custom component)                  │
     │  3. Susun pesan multimodal: teks prompt + "Foto SEBELUM…" + "Foto SESUDAH…"
     │  4. ModelInference.chat (temperature 0, max_tokens 300)
     │  5. Kembalikan teks jawaban model sebagai Message
-    ▼
+    ▼  output "JSON"
 Chat Output
 ```
 
@@ -925,133 +925,69 @@ Chat Output
 
 ```python
 import base64
-
 import json
 
-
-
 import httpx
-
 from langflow.custom import Component
-
 from langflow.io import MessageTextInput, Output, SecretStrInput, StrInput
-
 from langflow.schema.message import Message
 
 
-
-
-
 class AduinVerifyVision(Component):
-
     display_name = "Aduin Verify Vision"
-
     description = "Verifikasi foto penyelesaian aduan dengan model vision watsonx.ai."
-
     icon = "image"
 
-
-
     inputs = [
-
         MessageTextInput(name="prompt", display_name="Prompt", required=True),
-
         MessageTextInput(name="input_json", display_name="Input JSON", required=True),
-
         StrInput(name="url", display_name="watsonx URL", value="https://jp-tok.ml.cloud.ibm.com"),
-
         StrInput(name="project_id", display_name="Project ID", required=True),
-
         SecretStrInput(name="api_key", display_name="API Key", required=True),
-
         StrInput(
-
             name="model_id",
-
             display_name="Model",
-
             value="mistralai/mistral-small-3-1-24b-instruct-2503",
-
         ),
-
     ]
-
-
 
     outputs = [
-
         Output(display_name="JSON", name="json_output", method="build_output"),
-
     ]
 
-
-
     def _to_data_url(self, image_url: str) -> str:
-
         resp = httpx.get(image_url, timeout=15.0, follow_redirects=True)
-
         resp.raise_for_status()
-
         mime = resp.headers.get("content-type", "image/jpeg").split(";")[0]
-
         encoded = base64.b64encode(resp.content).decode("utf-8")
-
         return f"data:{mime};base64,{encoded}"
 
-
-
     def build_output(self) -> Message:
-
         from ibm_watsonx_ai import Credentials
-
         from ibm_watsonx_ai.foundation_models import ModelInference
 
-
-
         data = json.loads(self.input_json)
-
         before_url = data.get("photo_before_url")
-
         after_url = data.get("photo_after_url")
 
-
-
         content = [{"type": "text", "text": self.prompt}]
-
         if before_url:
-
             content.append({"type": "text", "text": "Foto SEBELUM perbaikan:"})
-
             content.append({"type": "image_url", "image_url": {"url": self._to_data_url(before_url)}})
-
         content.append({"type": "text", "text": "Foto SESUDAH perbaikan:"})
-
         content.append({"type": "image_url", "image_url": {"url": self._to_data_url(after_url)}})
 
-
-
         model = ModelInference(
-
             model_id=self.model_id,
-
             credentials=Credentials(url=self.url, api_key=self.api_key),
-
             project_id=self.project_id,
-
         )
-
         response = model.chat(
-
             messages=[{"role": "user", "content": content}],
-
             params={"temperature": 0, "max_tokens": 300},
-
         )
-
         text = response["choices"][0]["message"]["content"]
-
         self.status = text
-
         return Message(text=text)
 ```
 
