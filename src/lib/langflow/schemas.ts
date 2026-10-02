@@ -156,3 +156,13 @@ export const opdAgentOutputSchema = z
     }
   });
 export type OpdAgentOutput = z.infer<typeof opdAgentOutputSchema>;
+
+// ---------------------------------------------------------------------------
+// Flow 5 — aduin-verify
+// ---------------------------------------------------------------------------
+
+export const verifyOutputSchema = z.object({
+  ai_status: z.enum(["ai_verified", "needs_review"]),
+  ai_reason: z.string().min(10),
+});
+export type VerifyOutput = z.infer<typeof verifyOutputSchema>;

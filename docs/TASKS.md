@@ -191,22 +191,22 @@
 
 **Flow `aduin-verify`:**
 - [ ] Buat flow baru bernama `aduin-verify` di UI Langflow.
-- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 5 Opsi A (Custom Component Vision dengan `ibm/granite-vision-3-3-2b`); jika Vision tidak tersedia, gunakan Opsi B (fallback teks).
+- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 5: **Chat Input** → **Prompt Template** (`langflow/prompts/verify.md`, variabel `{input_json}`) → custom component **Aduin Verify Vision** (`mistralai/mistral-small-3-1-24b-instruct-2503` via `ibm_watsonx_ai`) → **Chat Output**; Chat Input juga tersambung ke input "Input JSON" komponen.
 - [ ] Tes di Playground dengan test cases dari LANGFLOW_FLOWS.md §Flow 5 (TC-1 foto jalan diperbaiki, TC-2 foto tidak relevan, TC-3 foto buram, TC-4 tanpa foto sebelum).
 - [ ] Setelah semua TC lulus, export flow ke `langflow/flows/aduin-verify.json`.
 - [ ] Catat Flow ID ke `.env.local` sebagai `LANGFLOW_FLOW_VERIFY_ID`.
 
 ### Kode (Bob)
 
-- [ ] Tambahkan `verifyOutputSchema` ke `src/lib/langflow/schemas.ts` sesuai LANGFLOW_FLOWS.md §Flow 5.
-- [ ] Tambahkan fungsi `runVerify()` ke `src/lib/langflow/client.ts`.
-- [ ] Konfigurasi Supabase Storage bucket `aduan-photos` (public read, authenticated write).
-- [ ] Buat `POST /api/verify/[id]`: terima multipart/form-data dengan foto; upload ke Supabase Storage; simpan URL ke `complaints.after_photo_url`; panggil `runVerify()`; validasi Zod; update `complaints.status` ke `ai_verified` atau `needs_review`; simpan ke tabel `verifications`.
-- [ ] Buat `POST /api/verify/[id]/review`: operator menyetujui (status → `ai_verified`, `verification_method = 'manual_approval'`) atau mengembalikan (status → `in_progress`, simpan `rejection_note`).
-- [ ] Buat `POST /api/verify/[id]/confirm`: warga mengonfirmasi (status → `closed`) atau menolak (status → `in_progress`, simpan catatan); simpan ke `citizen_confirmations`.
-- [ ] Perbarui halaman detail aduan `/aduan/[id]`: tampilkan foto sebelum (dari `complaints.photo_url`) dan sesudah (dari `complaints.after_photo_url`); tombol upload foto untuk petugas_opd saat status `in_progress`; tombol review untuk operator saat `needs_review`; tombol konfirmasi / tolak untuk warga saat `ai_verified`.
-- [ ] Pastikan tidak ada transisi ke `closed` tanpa melewati `ai_verified` (validasi di route handler).
-- [ ] Pastikan `npm run build` dan `npm run lint` lulus.
+- [x] Tambahkan `verifyOutputSchema` ke `src/lib/langflow/schemas.ts` sesuai LANGFLOW_FLOWS.md §Flow 5.
+- [x] Tambahkan fungsi `runVerify()` ke `src/lib/langflow/client.ts`. *(Timeout 60 detik.)*
+- [x] Konfigurasi Supabase Storage bucket `aduan-photos` (public read, authenticated write). *(Sudah dibuat di `supabase/migrations/0002_storage.sql`.)*
+- [x] Buat `POST /api/verify/[id]`: terima multipart/form-data dengan foto; upload ke Supabase Storage; simpan URL ke `complaints.after_photo_url`; panggil `runVerify()`; validasi Zod; update `complaints.status` ke `ai_verified` atau `needs_review`; simpan ke tabel `verifications`. *(Kolom aktual: `complaints.photo_after_url`. Foto diunggah server dengan service role; flow gagal → `needs_review` + alasan baku. Syarat: semua tugas rencana selesai.)*
+- [x] Buat `POST /api/verify/[id]/review`: operator menyetujui (status → `ai_verified`, `verification_method = 'manual_approval'`) atau mengembalikan (status → `in_progress`, simpan `rejection_note`). *(Tidak ada kolom `verification_method` di skema — dicatat lewat `verifications.manual_approval` = true/false, `approved_by`, `approval_note`.)*
+- [x] Buat `POST /api/verify/[id]/confirm`: warga mengonfirmasi (status → `closed`) atau menolak (status → `in_progress`, simpan catatan); simpan ke `citizen_confirmations`.
+- [x] Perbarui halaman detail aduan `/aduan/[id]`: tampilkan foto sebelum (dari `complaints.photo_url`) dan sesudah (dari `complaints.after_photo_url`); tombol upload foto untuk petugas_opd saat status `in_progress`; tombol review untuk operator saat `needs_review`; tombol konfirmasi / tolak untuk warga saat `ai_verified`. *(Kolom aktual `photo_before_url`/`photo_after_url`. Konfirmasi/tolak warga ada di daftar "Aduan Saya" di `/lapor`, sesuai cakupan sesi M5.)*
+- [x] Pastikan tidak ada transisi ke `closed` tanpa melewati `ai_verified` (validasi di route handler). *(State machine terpusat di `src/lib/services/complaint-status.ts`.)*
+- [x] Pastikan `npm run build` dan `npm run lint` lulus.
 
 ### Definition of Done
 

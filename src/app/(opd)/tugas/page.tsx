@@ -5,15 +5,26 @@
  * yang sedang login, dikelompokkan per status (belum mulai / proses /
  * selesai), dengan filter ?status=. Tugas yang ketergantungannya belum
  * selesai ditandai "Menunggu" dan tombol mulainya dinonaktifkan.
+ *
+ * M5: seksi "Bukti Penyelesaian" — aduan yang melibatkan OPD ini dan sudah
+ * di tahap penyelesaian. Tombol "Unggah Bukti Penyelesaian" hanya aktif jika
+ * SEMUA tugas aduan (lintas OPD) sudah selesai.
  */
 import Link from "next/link";
-import { ArrowRight, ClipboardList, Clock, ExternalLink } from "lucide-react";
+import { ArrowRight, ClipboardList, Clock, ExternalLink, MessageSquareWarning } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TaskStatusControl } from "@/components/task-status-control";
+import { CompletionUpload } from "@/components/completion-upload";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { getTasksForOpd, type OpdTaskView } from "@/lib/services/coordination";
+import {
+  getCompletionCandidatesForOpd,
+  isPlanComplete,
+  type CompletionCandidate,
+} from "@/lib/services/verification";
+import { STATUS_BADGE_VARIANT, STATUS_LABELS, type ComplaintStatus } from "@/lib/constants/status";
 import {
   TASK_STATUSES,
   TASK_STATUS_BADGE_VARIANT,
@@ -101,6 +112,64 @@ function TaskItem({ task }: { task: OpdTaskView }) {
   );
 }
 
+function CompletionItem({ item }: { item: CompletionCandidate }) {
+  const statusKey = item.status as ComplaintStatus;
+  const complete = isPlanComplete(item.progress);
+  return (
+    <li className="rounded-lg border p-3 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm line-clamp-2">{item.text}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {item.region_name ?? "Wilayah tidak diketahui"} · {item.progress.done}/{item.progress.total} tugas
+            selesai
+          </p>
+        </div>
+        <Badge variant={STATUS_BADGE_VARIANT[statusKey] ?? "outline"} className="shrink-0">
+          {STATUS_LABELS[statusKey] ?? item.status}
+        </Badge>
+      </div>
+
+      {item.status === "in_progress" && item.return_note && (
+        <p className="text-xs rounded-md bg-destructive/5 border border-destructive/20 p-2 flex gap-1.5">
+          <MessageSquareWarning className="size-3.5 shrink-0 text-destructive mt-0.5" />
+          <span>
+            Dikembalikan oleh {item.return_note.source === "operator" ? "operator" : "warga"}:{" "}
+            {item.return_note.note}
+          </span>
+        </p>
+      )}
+
+      {item.status !== "in_progress" && item.latest_verification && (
+        <p className="text-xs text-muted-foreground">Hasil AI: {item.latest_verification.ai_reason}</p>
+      )}
+
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        {item.status === "in_progress" ? (
+          <CompletionUpload
+            complaintId={item.id}
+            enabled={complete}
+            disabledReason="Aktif setelah semua tugas pada aduan ini (termasuk milik OPD lain) selesai."
+          />
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {item.status === "needs_review"
+              ? "Menunggu tinjauan operator."
+              : "Menunggu konfirmasi warga."}
+          </p>
+        )}
+        <Link
+          href={`/aduan/${item.id}`}
+          className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
+        >
+          Lihat detail aduan
+          <ExternalLink className="size-3" />
+        </Link>
+      </div>
+    </li>
+  );
+}
+
 export default async function TugasPage({
   searchParams,
 }: {
@@ -137,13 +206,23 @@ export default async function TugasPage({
     );
   }
 
+  const supabase = createClient();
   let tasks: OpdTaskView[] = [];
   let loadError: string | null = null;
-  try {
-    tasks = await getTasksForOpd(createClient(), profile.opd_id);
-  } catch (err) {
-    loadError = err instanceof Error ? err.message : "Gagal memuat tugas.";
-  }
+  let candidates: CompletionCandidate[] = [];
+  let candidatesError: string | null = null;
+  const [tasksResult, candidatesResult] = await Promise.allSettled([
+    getTasksForOpd(supabase, profile.opd_id),
+    getCompletionCandidatesForOpd(supabase, profile.opd_id),
+  ]);
+  if (tasksResult.status === "fulfilled") tasks = tasksResult.value;
+  else loadError = tasksResult.reason instanceof Error ? tasksResult.reason.message : "Gagal memuat tugas.";
+  if (candidatesResult.status === "fulfilled") candidates = candidatesResult.value;
+  else
+    candidatesError =
+      candidatesResult.reason instanceof Error
+        ? candidatesResult.reason.message
+        : "Gagal memuat aduan tahap penyelesaian.";
 
   const groups = TASK_STATUSES.filter((s) => !activeFilter || s === activeFilter).map((s) => ({
     status: s,
@@ -161,6 +240,27 @@ export default async function TugasPage({
   return (
     <div className="space-y-6">
       {header}
+
+      {(candidatesError || candidates.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Bukti Penyelesaian ({candidates.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {candidatesError ? (
+              <p className="text-sm text-destructive py-4 text-center">
+                Gagal memuat aduan tahap penyelesaian: {candidatesError}
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {candidates.map((item) => (
+                  <CompletionItem key={item.id} item={item} />
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-2 flex-wrap">
         {filters.map((f) => {

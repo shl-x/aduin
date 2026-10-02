@@ -18,7 +18,7 @@
 |-------|----------|---------|
 | LLM default (clarify, triage, opd-agent, alert-summary) | `ibm/granite-4-h-small` | Cek ketersediaan di akun |
 | Alternatif LLM (jika `granite-4-h-small` tidak tersedia) | `ibm/granite-3-3-8b-instruct` | Fallback manual |
-| Vision (aduin-verify) | `ibm/granite-vision-3-3-2b` | Untuk analisis foto |
+| Vision (aduin-verify) | `mistralai/mistral-small-3-1-24b-instruct-2503` | Analisis foto; dipanggil dari custom component lewat `ibm_watsonx_ai` (region Tokyo) |
 | Embedding (aduin-embed) | `ibm/granite-embedding-278m-multilingual` | 768 dimensi |
 
 ---
@@ -886,281 +886,181 @@ export type VerifyOutput = z.infer<typeof verifyOutputSchema>;
 
 ### Susunan Komponen Langflow
 
-#### Opsi A — Custom Component Vision (Direkomendasikan)
-
-Flow ini menggunakan **dua komponen saja**: Chat Input dan satu Custom Component Python yang memanggil watsonx.ai Vision API secara langsung menggunakan kredensial dari Global Variables.
+Model vision yang dipakai adalah **`mistralai/mistral-small-3-1-24b-instruct-2503`** (tersedia di region Tokyo, `https://jp-tok.ml.cloud.ibm.com`), dipanggil dari custom component lewat `ModelInference.chat` milik library `ibm_watsonx_ai`.
 
 ```
-Chat Input
-    │  (JSON string dengan URL foto)
-    ▼
-Custom Component Python — AduinVerifier
-    │  1. Parse input JSON (complaint_text, category, photo_after_url, photo_before_url)
-    │  2. Unduh foto_after (dan foto_before jika ada) dari URL Supabase Storage
-    │  3. Encode ke base64
-    │  4. Buat prompt verifikasi sesuai kategori
-    │  5. Panggil ibm/granite-vision-3-3-2b di watsonx.ai REST API
-    │  6. Parse respons dan kembalikan JSON {"ai_status", "ai_reason"} sebagai Message
+Chat Input ──────────────┬──────────────────────────────┐
+    │                    │                              │
+    ▼                    │                              │
+Prompt Template          │                              │
+    │  Template: langflow/prompts/verify.md             │
+    │  Variabel: {input_json} ← dari Chat Input         │
+    ▼                                                   │
+Aduin Verify Vision (custom component)                  │
+    │  input "Prompt"     ← output Prompt Template      │
+    │  input "Input JSON" ← Chat Input (langsung) ──────┘
+    │  1. Parse Input JSON → photo_before_url, photo_after_url
+    │  2. Unduh foto (sebelum jika ada, lalu sesudah) → base64 data URL
+    │  3. Susun pesan multimodal: teks prompt + "Foto SEBELUM…" + "Foto SESUDAH…"
+    │  4. ModelInference.chat (temperature 0, max_tokens 300)
+    │  5. Kembalikan teks jawaban model sebagai Message
     ▼
 Chat Output
 ```
 
-**Custom Component Python — Kode Lengkap:**
+**Konfigurasi custom component:**
+
+| Input | Nilai |
+|-------|-------|
+| watsonx URL | `https://jp-tok.ml.cloud.ibm.com` |
+| Project ID | Global Variable `WATSONX_PROJECT_ID` |
+| API Key | Global Variable `WATSONX_API_KEY` |
+| Model | `mistralai/mistral-small-3-1-24b-instruct-2503` |
+
+> Komponen tidak mem-parse JSON keluaran model — parsing tahan banting (strip code fence, cari `{...}`) dan validasi Zod dilakukan di `src/lib/langflow/client.ts`. `runVerify()` memakai timeout **60 detik** karena flow mengunduh 1–2 foto lalu memanggil model vision.
+
+> Bucket `aduan-photos` harus `public` (lihat `supabase/migrations/0002_storage.sql`) agar komponen bisa mengunduh foto tanpa autentikasi. Foto sesudah diunggah oleh server (`POST /api/verify/[id]`), bukan oleh klien — sehingga komponen hanya pernah mengunduh URL Storage milik Aduin.
+
+**Kode custom component "Aduin Verify Vision":**
 
 ```python
-"""
-aduin-verify Custom Component (Opsi A — Vision)
-Memanggil IBM watsonx.ai Granite Vision secara langsung via REST API.
-Kredensial diambil dari Global Variables Langflow (environment variables).
-
-Dependensi yang harus tersedia di environment Langflow:
-  - httpx (biasanya sudah tersedia di Langflow)
-
-Verifikasi sebelum deploy:
-  - Endpoint generate_text untuk model Vision mungkin berbeda; cek dokumentasi
-    IBM watsonx.ai terbaru jika status 404 atau 400.
-  - Format payload messages (role/content) sesuai IBM watsonx.ai Chat API.
-"""
-
-from langflow.custom import Component
-from langflow.io import MessageTextInput, Output
-from langflow.schema.message import Message
 import base64
+
 import json
-import os
+
+
+
 import httpx
 
+from langflow.custom import Component
 
-CATEGORY_GUIDANCE: dict[str, str] = {
-    "infrastruktur_jalan": (
-        "Apakah permukaan jalan tampak diperbaiki? Tidak ada lubang yang terlihat?"
-    ),
-    "pengelolaan_sampah": (
-        "Apakah area tampak bersih dari tumpukan sampah yang dilaporkan?"
-    ),
-    "banjir_drainase": (
-        "Apakah genangan air sudah tidak ada? Apakah saluran terlihat bersih/berfungsi?"
-    ),
-    "kesehatan_diare": (
-        "Apakah foto menunjukkan tindakan penanganan kesehatan (fogging, pengobatan, dll.)?"
-    ),
-    "air_bersih_pdam": (
-        "Apakah foto menunjukkan perbaikan infrastruktur air atau air yang terlihat jernih?"
-    ),
-    "pendidikan": (
-        "Apakah fasilitas pendidikan yang dilaporkan rusak tampak sudah diperbaiki?"
-    ),
-    "pkl_tata_ruang": (
-        "Apakah area yang dilaporkan tampak tertib dan bersih dari pelanggaran?"
-    ),
-}
+from langflow.io import MessageTextInput, Output, SecretStrInput, StrInput
+
+from langflow.schema.message import Message
 
 
-class AduinVerifier(Component):
-    display_name = "Aduin Verifier (Vision)"
-    description = (
-        "Downloads photos from Supabase Storage URLs, calls IBM watsonx.ai "
-        "granite-vision-3-3-2b, returns verification JSON as Message."
-    )
+
+
+
+class AduinVerifyVision(Component):
+
+    display_name = "Aduin Verify Vision"
+
+    description = "Verifikasi foto penyelesaian aduan dengan model vision watsonx.ai."
+
+    icon = "image"
+
+
 
     inputs = [
-        MessageTextInput(
-            name="chat_input",
-            display_name="Chat Input (JSON)",
-            info=(
-                'JSON string: {"complaint_text": "...", "category": "...", '
-                '"photo_after_url": "...", "photo_before_url": null}'
-            ),
+
+        MessageTextInput(name="prompt", display_name="Prompt", required=True),
+
+        MessageTextInput(name="input_json", display_name="Input JSON", required=True),
+
+        StrInput(name="url", display_name="watsonx URL", value="https://jp-tok.ml.cloud.ibm.com"),
+
+        StrInput(name="project_id", display_name="Project ID", required=True),
+
+        SecretStrInput(name="api_key", display_name="API Key", required=True),
+
+        StrInput(
+
+            name="model_id",
+
+            display_name="Model",
+
+            value="mistralai/mistral-small-3-1-24b-instruct-2503",
+
         ),
+
     ]
+
+
 
     outputs = [
-        Output(display_name="Verification JSON", name="output", method="run_verify"),
+
+        Output(display_name="JSON", name="json_output", method="build_output"),
+
     ]
 
-    def _download_image_b64(self, url: str) -> tuple[str, str]:
-        """Unduh gambar dari URL dan kembalikan (base64_string, mime_type)."""
-        resp = httpx.get(url, timeout=15.0, follow_redirects=True)
+
+
+    def _to_data_url(self, image_url: str) -> str:
+
+        resp = httpx.get(image_url, timeout=15.0, follow_redirects=True)
+
         resp.raise_for_status()
-        mime = resp.headers.get("content-type", "image/jpeg").split(";")[0].strip()
-        b64 = base64.b64encode(resp.content).decode("utf-8")
-        return b64, mime
 
-    def _build_prompt(
-        self,
-        complaint_text: str,
-        category: str,
-        has_before: bool,
-    ) -> str:
-        guidance = CATEGORY_GUIDANCE.get(
-            category,
-            "Apakah kondisi dalam foto menunjukkan bahwa masalah yang dilaporkan sudah diselesaikan?",
+        mime = resp.headers.get("content-type", "image/jpeg").split(";")[0]
+
+        encoded = base64.b64encode(resp.content).decode("utf-8")
+
+        return f"data:{mime};base64,{encoded}"
+
+
+
+    def build_output(self) -> Message:
+
+        from ibm_watsonx_ai import Credentials
+
+        from ibm_watsonx_ai.foundation_models import ModelInference
+
+
+
+        data = json.loads(self.input_json)
+
+        before_url = data.get("photo_before_url")
+
+        after_url = data.get("photo_after_url")
+
+
+
+        content = [{"type": "text", "text": self.prompt}]
+
+        if before_url:
+
+            content.append({"type": "text", "text": "Foto SEBELUM perbaikan:"})
+
+            content.append({"type": "image_url", "image_url": {"url": self._to_data_url(before_url)}})
+
+        content.append({"type": "text", "text": "Foto SESUDAH perbaikan:"})
+
+        content.append({"type": "image_url", "image_url": {"url": self._to_data_url(after_url)}})
+
+
+
+        model = ModelInference(
+
+            model_id=self.model_id,
+
+            credentials=Credentials(url=self.url, api_key=self.api_key),
+
+            project_id=self.project_id,
+
         )
-        before_note = (
-            "Foto sebelum (before) juga disertakan sebagai pembanding."
-            if has_before
-            else "Tidak ada foto sebelum; nilai berdasarkan deskripsi aduan dan kondisi foto sesudah."
-        )
-        return (
-            f"Kamu adalah sistem verifikasi penyelesaian aduan pemerintah daerah.\n\n"
-            f"Aduan: {complaint_text}\n"
-            f"Kategori: {category}\n"
-            f"{before_note}\n\n"
-            f"Panduan penilaian untuk kategori ini: {guidance}\n\n"
-            f"Nilai apakah foto sesudah (after) membuktikan penyelesaian masalah.\n"
-            f"Kembalikan JSON saja:\n"
-            f'Jika terbukti: {{"ai_status": "ai_verified", "ai_reason": "<alasan singkat Bahasa Indonesia>"}}\n'
-            f'Jika tidak/ragu: {{"ai_status": "needs_review", "ai_reason": "<alasan singkat Bahasa Indonesia>"}}\n'
-            f"Tanpa teks tambahan. Tanpa markdown code fence."
+
+        response = model.chat(
+
+            messages=[{"role": "user", "content": content}],
+
+            params={"temperature": 0, "max_tokens": 300},
+
         )
 
-    def run_verify(self) -> Message:
-        # --- 1. Parse input ---
-        raw = self.chat_input
-        if hasattr(raw, "text"):
-            raw = raw.text
-        data = json.loads(str(raw))
+        text = response["choices"][0]["message"]["content"]
 
-        complaint_text: str = data["complaint_text"]
-        category: str = data.get("category", "")
-        photo_after_url: str = data["photo_after_url"]
-        photo_before_url: str | None = data.get("photo_before_url")
+        self.status = text
 
-        # --- 2. Unduh gambar ---
-        after_b64, after_mime = self._download_image_b64(photo_after_url)
-        has_before = photo_before_url is not None
-        before_b64: str | None = None
-        before_mime: str = "image/jpeg"
-        if has_before:
-            before_b64, before_mime = self._download_image_b64(photo_before_url)  # type: ignore[arg-type]
-
-        # --- 3. Ambil kredensial ---
-        api_key = os.environ.get("WATSONX_API_KEY", "")
-        project_id = os.environ.get("WATSONX_PROJECT_ID", "")
-        base_url = os.environ.get(
-            "WATSONX_URL", "https://us-south.ml.cloud.ibm.com"
-        ).rstrip("/")
-
-        if not api_key or not project_id:
-            raise ValueError(
-                "WATSONX_API_KEY dan WATSONX_PROJECT_ID harus diset "
-                "sebagai Global Variables di Langflow."
-            )
-
-        # --- 4. Dapatkan IAM token ---
-        iam_resp = httpx.post(
-            "https://iam.cloud.ibm.com/identity/token",
-            data={
-                "grant_type": "urn:ibm:params:oauth:grant-type:apikey",
-                "apikey": api_key,
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            timeout=15.0,
-        )
-        iam_resp.raise_for_status()
-        iam_token: str = iam_resp.json()["access_token"]
-
-        # --- 5. Bangun pesan multimodal ---
-        prompt_text = self._build_prompt(complaint_text, category, has_before)
-
-        # Susun content array: teks + gambar sesudah (+ gambar sebelum jika ada)
-        content: list[dict] = [{"type": "text", "text": prompt_text}]
-        if before_b64 is not None:
-            content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:{before_mime};base64,{before_b64}",
-                },
-            })
-        content.append({
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:{after_mime};base64,{after_b64}",
-            },
-        })
-
-        payload = {
-            "model_id": "ibm/granite-vision-3-3-2b",
-            "project_id": project_id,
-            "messages": [{"role": "user", "content": content}],
-            "parameters": {
-                "max_new_tokens": 200,
-                "temperature": 0.0,
-            },
-        }
-
-        # --- 6. Panggil watsonx.ai Chat API ---
-        wx_resp = httpx.post(
-            f"{base_url}/ml/v1/text/chat?version=2024-05-31",
-            json=payload,
-            headers={
-                "Authorization": f"Bearer {iam_token}",
-                "Content-Type": "application/json",
-            },
-            timeout=30.0,
-        )
-        wx_resp.raise_for_status()
-        wx_data = wx_resp.json()
-
-        # Ekstrak teks output
-        raw_text: str = wx_data["choices"][0]["message"]["content"]
-
-        # --- 7. Parse JSON dari output model ---
-        # Coba parse langsung; strip fence jika perlu
-        def try_parse(s: str) -> dict | None:
-            try:
-                return json.loads(s)
-            except json.JSONDecodeError:
-                return None
-
-        result = try_parse(raw_text)
-        if result is None:
-            stripped = raw_text.replace("```json", "").replace("```", "").strip()
-            result = try_parse(stripped)
-        if result is None:
-            import re
-            m = re.search(r"\{[\s\S]*\}", raw_text)
-            if m:
-                result = try_parse(m.group(0))
-        if result is None:
-            raise ValueError(f"Gagal mem-parse output Vision model: {raw_text!r}")
-
-        return Message(text=json.dumps(result))
+        return Message(text=text)
 ```
-
-> **Catatan verifikasi wajib sebelum deploy:**
-> 1. Cek endpoint yang benar untuk model Vision di dokumentasi IBM watsonx.ai terbaru (endpoint `text/chat` atau `text/generation`).
-> 2. Cek format payload `messages` — IBM watsonx.ai mungkin menggunakan format yang berbeda dari OpenAI.
-> 3. Pastikan bucket Supabase Storage berstatus `public` agar URL foto dapat diakses tanpa autentikasi.
-> 4. Global Variables `WATSONX_API_KEY`, `WATSONX_PROJECT_ID`, `WATSONX_URL` harus sudah dibuat di Langflow.
-
-#### Opsi B — Fallback Berbasis Deskripsi Teks (jika Vision tidak tersedia)
-
-Jika komponen `ibm/granite-vision-3-3-2b` tidak tersedia di akun atau endpoint Vision tidak dapat diakses:
-
-```
-Chat Input
-    │
-    ▼
-Prompt
-    │  Template: langflow/prompts/verify.md (Versi B — text-only)
-    │  Variabel: {input_json}   ← disambung dari Chat Input
-    ▼
-IBM watsonx.ai (LLM)
-    │  Model: ibm/granite-4-h-small
-    │  Temperature: 0.0
-    ▼
-Chat Output
-```
-
-> Fallback text-only **selalu** menghasilkan `ai_status = "needs_review"` karena tanpa foto tidak mungkin memverifikasi secara visual. Ini adalah perilaku fail-safe yang benar.
 
 ### Fallback
 
 Jika flow gagal (timeout, HTTP error, Zod invalid, download foto gagal):
 - Simpan ke tabel `verifications` dengan `ai_status = 'needs_review'` dan `ai_reason = 'Verifikasi AI gagal; memerlukan tinjauan manual.'`
 - Ubah `complaints.status` menjadi `'needs_review'` (sesuai state machine §3 ARCHITECTURE.md: `in_progress → needs_review`)
-- Operator mendapat notifikasi untuk tinjauan manual
+- Operator meninjau aduan di `/aduan/[id]` (tombol "Setujui Manual" / "Kembalikan ke Petugas")
 - **Jangan biarkan status tetap `in_progress` jika upload foto sudah terjadi** — `needs_review` adalah state yang benar saat AI tidak bisa memverifikasi
 
 ### Test Cases Playground

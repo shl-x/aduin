@@ -16,6 +16,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/client";
 import { TASK_STATUSES, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/constants/tasks";
 import { attachDependencies } from "@/lib/services/coordination";
+import { transitionComplaintStatus } from "@/lib/services/complaint-status";
 
 const NEXT_STATUS: Record<TaskStatus, TaskStatus | null> = {
   belum_mulai: "proses",
@@ -123,17 +124,16 @@ export async function PATCH(
 
   const plan = task.plan as unknown as { complaint_id: string } | null;
   if (nextStatus === "proses" && plan) {
-    // Hanya transisi triaged → in_progress; status lain tidak disentuh.
-    const { error: complaintErr } = await supabase
-      .from("complaints")
-      .update({ status: "in_progress", updated_at: now })
-      .eq("id", plan.complaint_id)
-      .eq("status", "triaged");
-    if (complaintErr) {
-      console.error(
-        `[/api/tasks/${taskId}] Gagal memperbarui status aduan ${plan.complaint_id}:`,
-        complaintErr.message
-      );
+    // Hanya transisi triaged → in_progress. Jika aduan sudah in_progress
+    // (tugas lain lebih dulu dimulai), update bersyarat tidak mengubah apa pun.
+    const transition = await transitionComplaintStatus(
+      supabase,
+      plan.complaint_id,
+      "triaged",
+      "in_progress"
+    );
+    if (!transition.ok && transition.httpStatus === 500) {
+      console.error(`[/api/tasks/${taskId}] ${transition.error} (aduan ${plan.complaint_id})`);
     }
   }
 

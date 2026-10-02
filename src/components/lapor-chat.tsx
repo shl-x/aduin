@@ -17,6 +17,7 @@
  */
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Send, Paperclip, X, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,6 +70,7 @@ function formatTriageMessage(t: TriageSummary): string {
 }
 
 export function LaporChat({ regions }: { regions: RegionOption[] }) {
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draftText, setDraftText] = useState("");
   const [complaintText, setComplaintText] = useState("");
@@ -161,6 +163,8 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
           : "Aduan Anda sudah tercatat. Proses triase otomatis sedang mengalami gangguan, tim kami akan meninjau secara manual.";
 
       setMessages((m) => [...m, { id: crypto.randomUUID(), from: "bot", text: botText }]);
+      // Perbarui daftar "Aduan Saya" di bawah chat.
+      router.refresh();
     } catch {
       setMessages((m) => [
         ...m,

@@ -8,8 +8,9 @@
  *
  * Menampilkan: info aduan, kartu "Kenapa AI memutuskan ini", rencana
  * koordinasi OPD (M4 — tombol "Buat Rencana Koordinasi" untuk operator,
- * tombol status tugas untuk petugas_opd), riwayat override, dan form
- * override (khusus operator).
+ * tombol status tugas untuk petugas_opd), verifikasi penyelesaian (M5 —
+ * foto sebelum/sesudah, hasil AI, tinjauan operator, unggah bukti petugas),
+ * riwayat override, dan form override (khusus operator).
  */
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -19,9 +20,11 @@ import { Separator } from "@/components/ui/separator";
 import { TriageOverrideForm } from "@/components/triage-override-form";
 import { CoordinationPlan } from "@/components/coordination-plan";
 import { GeneratePlanButton } from "@/components/generate-plan-button";
+import { VerificationCard } from "@/components/verification-card";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { getCoordinationPlan, type CoordinationPlanView } from "@/lib/services/coordination";
+import { getVerificationHistory, type VerificationHistory } from "@/lib/services/verification";
 import { CATEGORIES } from "@/lib/constants/categories";
 import { STATUS_LABELS, STATUS_BADGE_VARIANT, type ComplaintStatus } from "@/lib/constants/status";
 
@@ -74,6 +77,21 @@ export default async function AduanDetailPage({
     planError = err instanceof Error ? err.message : "Gagal memuat rencana koordinasi.";
   }
   const planStarted = plan?.tasks.some((t) => t.status !== "belum_mulai") ?? false;
+  const planComplete = !!plan && plan.tasks.length > 0 && plan.tasks.every((t) => t.status === "selesai");
+  const viewerHasTask =
+    role === "petugas_opd" && !!profile?.opd_id && !!plan?.tasks.some((t) => t.opd?.id === profile.opd_id);
+
+  let verificationHistory: VerificationHistory | null = null;
+  let verificationError: string | null = null;
+  try {
+    verificationHistory = (await getVerificationHistory(supabase, [id])).get(id) ?? null;
+  } catch (err) {
+    verificationError = err instanceof Error ? err.message : "Gagal memuat verifikasi.";
+  }
+  const showVerification =
+    ["in_progress", "needs_review", "ai_verified", "closed"].includes(complaint.status) ||
+    !!complaint.photo_after_url ||
+    (verificationHistory?.verifications.length ?? 0) > 0;
 
   const region = complaint.region as unknown as { name: string } | null;
   const opd = complaint.opd as unknown as { short_name: string; name: string } | null;
@@ -187,6 +205,22 @@ export default async function AduanDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {showVerification && (
+        <VerificationCard
+          complaint={{
+            id,
+            status: complaint.status,
+            photo_before_url: complaint.photo_before_url,
+            photo_after_url: complaint.photo_after_url,
+          }}
+          history={verificationHistory}
+          historyError={verificationError}
+          role={role}
+          viewerHasTask={viewerHasTask}
+          planComplete={planComplete}
+        />
+      )}
 
       {overrides && overrides.length > 0 && (
         <Card>

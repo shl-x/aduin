@@ -21,10 +21,12 @@ import {
   triageOutputSchema,
   embedOutputSchema,
   opdAgentOutputSchema,
+  verifyOutputSchema,
   type ClarifyOutput,
   type TriageOutput,
   type EmbedOutput,
   type OpdAgentOutput,
+  type VerifyOutput,
 } from "./schemas";
 
 const BASE_URL = process.env.LANGFLOW_BASE_URL ?? "http://127.0.0.1:7860";
@@ -32,6 +34,8 @@ const API_KEY = process.env.LANGFLOW_API_KEY ?? "";
 const DEFAULT_TIMEOUT_MS = 15_000;
 /** aduin-opd-agent menghasilkan hingga 800 token — butuh waktu lebih lama. */
 const OPD_AGENT_TIMEOUT_MS = 60_000;
+/** aduin-verify mengunduh 1–2 foto lalu memanggil model vision — butuh waktu lebih lama. */
+const VERIFY_TIMEOUT_MS = 60_000;
 
 export class LangflowParseError extends Error {
   constructor(public rawText: string) {
@@ -158,6 +162,29 @@ export async function runOpdAgent(input: {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[Langflow] aduin-opd-agent gagal:", message);
+    return { ok: false, error: message };
+  }
+}
+
+export type VerifyResult = { ok: true; data: VerifyOutput } | { ok: false; error: string };
+
+/**
+ * Flow 5 — aduin-verify. Menilai foto sesudah (dan sebelum, jika ada)
+ * dengan model vision. Kegagalan dikembalikan sebagai pesan — pemanggil
+ * wajib menerapkan fallback needs_review (docs/LANGFLOW_FLOWS.md §Flow 5).
+ */
+export async function runVerify(input: {
+  complaint_text: string;
+  category: string;
+  photo_before_url: string | null;
+  photo_after_url: string;
+}): Promise<VerifyResult> {
+  try {
+    const data = await runFlow("verify", input, verifyOutputSchema, VERIFY_TIMEOUT_MS);
+    return { ok: true, data };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Langflow] aduin-verify gagal:", message);
     return { ok: false, error: message };
   }
 }
