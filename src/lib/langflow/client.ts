@@ -22,11 +22,13 @@ import {
   embedOutputSchema,
   opdAgentOutputSchema,
   verifyOutputSchema,
+  alertSummaryOutputSchema,
   type ClarifyOutput,
   type TriageOutput,
   type EmbedOutput,
   type OpdAgentOutput,
   type VerifyOutput,
+  type AlertSummaryOutput,
 } from "./schemas";
 
 const BASE_URL = process.env.LANGFLOW_BASE_URL ?? "http://127.0.0.1:7860";
@@ -36,6 +38,8 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const OPD_AGENT_TIMEOUT_MS = 60_000;
 /** aduin-verify mengunduh 1–2 foto lalu memanggil model vision — butuh waktu lebih lama. */
 const VERIFY_TIMEOUT_MS = 60_000;
+/** Ringkasan alert di-await di jalur triage — dibatasi env agar triage tidak tertahan lama. */
+const ALERT_SUMMARY_TIMEOUT_MS = Number(process.env.LANGFLOW_ALERT_TIMEOUT_MS ?? "10000");
 
 export class LangflowParseError extends Error {
   constructor(public rawText: string) {
@@ -185,6 +189,33 @@ export async function runVerify(input: {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[Langflow] aduin-verify gagal:", message);
+    return { ok: false, error: message };
+  }
+}
+
+export type AlertSummaryResult =
+  | { ok: true; data: AlertSummaryOutput }
+  | { ok: false; error: string };
+
+/**
+ * Flow 6 — aduin-alert-summary. Ringkasan situasi lonjakan + rekomendasi OPD.
+ * `complaint_samples` adalah SATU string daftar bernomor yang disusun server.
+ * Gagal → pemanggil menyimpan alert dengan summary_status = 'pending_retry'.
+ */
+export async function runAlertSummary(input: {
+  category_label: string;
+  region_name: string;
+  count_24h: number;
+  mean_14d: number;
+  z_score: number;
+  complaint_samples: string;
+}): Promise<AlertSummaryResult> {
+  try {
+    const data = await runFlow("alertSummary", input, alertSummaryOutputSchema, ALERT_SUMMARY_TIMEOUT_MS);
+    return { ok: true, data };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Langflow] aduin-alert-summary gagal:", message);
     return { ok: false, error: message };
   }
 }

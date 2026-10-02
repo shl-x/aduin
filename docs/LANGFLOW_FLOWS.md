@@ -16,7 +16,8 @@
 
 | Peran | Model ID | Catatan |
 |-------|----------|---------|
-| LLM default (clarify, triage, opd-agent, alert-summary) | `ibm/granite-4-h-small` | Cek ketersediaan di akun |
+| LLM default (clarify, triage, opd-agent) | `ibm/granite-4-h-small` | Cek ketersediaan di akun |
+| LLM aduin-alert-summary | `mistralai/mistral-small-3-1-24b-instruct-2503` | Sesuai flow yang diekspor (region Tokyo) |
 | Alternatif LLM (jika `granite-4-h-small` tidak tersedia) | `ibm/granite-3-3-8b-instruct` | Fallback manual |
 | Vision (aduin-verify) | `mistralai/mistral-small-3-1-24b-instruct-2503` | Analisis foto; dipanggil dari custom component lewat `ibm_watsonx_ai` (region Tokyo) |
 | Embedding (aduin-embed) | `ibm/granite-embedding-278m-multilingual` | 768 dimensi |
@@ -1037,15 +1038,15 @@ Jika flow gagal (timeout, HTTP error, Zod invalid, download foto gagal):
 
 Menghasilkan ringkasan situasi lonjakan aduan dalam Bahasa Indonesia dan daftar rekomendasi OPD yang relevan. Dipanggil setelah deteksi z-score berhasil memicu alert baru.
 
-Dipanggil dari: `POST /api/alert/check` — setelah baris baru diinsert ke tabel `alerts` dengan `summary_status = 'pending_retry'`.
+Dipanggil dari `src/lib/analytics/early-warning.ts` setelah baris baru diinsert ke tabel `alerts` dengan `summary_status = 'pending_retry'` — baik dari pipeline triage (kombinasi kategori + wilayah aduan yang baru di-triage) maupun dari `POST /api/alert/check` (semua kombinasi). Tombol "Coba Lagi" di `/alert` memanggil ulang lewat `POST /api/alert/[alertId]/summary`.
 
 ### Format Input
 
-Server Next.js memformat `complaint_samples` menjadi daftar bernomor **sebelum memanggil flow**, lalu mengirim hasilnya sebagai field `complaint_samples_text` (string) di dalam `input_value`. Array `complaint_samples` tidak dikirim ke Langflow.
+Server Next.js menyusun `complaint_samples` sebagai **SATU string** daftar bernomor (maks 5 aduan terbaru untuk kombinasi kategori + wilayah, dipisah baris baru) **sebelum memanggil flow**. Tidak ada array yang dikirim ke Langflow.
 
 ```json
 {
-  "input_value": "{\"category_label\": \"...\", \"region_name\": \"...\", \"count_24h\": 6, \"mean_14d\": 1.2, \"z_score\": 2.8, \"complaint_samples_text\": \"1. ...\n2. ...\"}",
+  "input_value": "{\"category_label\": \"...\", \"region_name\": \"...\", \"count_24h\": 6, \"mean_14d\": 1.2, \"z_score\": 2.8, \"complaint_samples\": \"1. ...\n2. ...\"}",
   "input_type": "chat",
   "output_type": "chat",
   "tweaks": {}
@@ -1061,15 +1062,14 @@ Server Next.js memformat `complaint_samples` menjadi daftar bernomor **sebelum m
 | `count_24h` | `number` | Jumlah aduan dalam 24 jam terakhir |
 | `mean_14d` | `number` | Rata-rata harian baseline 14 hari |
 | `z_score` | `number` | Z-score yang memicu alert |
-| `complaint_samples_text` | `string` | Daftar bernomor teks aduan (maks 5), sudah diformat oleh server |
+| `complaint_samples` | `string` | SATU string daftar bernomor teks aduan (maks 5, dipisah `\n`), disusun oleh server |
 
-**Cara server Next.js memformat `complaint_samples_text`:**
+**Cara server Next.js menyusun `complaint_samples`:**
 
 ```typescript
-// Di server Next.js, sebelum memanggil runFlow():
-const complaint_samples_text = samples
-  .slice(0, 5)
-  .map((s, i) => `${i + 1}. ${s}`)
+// src/lib/analytics/early-warning.ts — generateAlertSummary()
+const complaint_samples = samples            // ≤ 5 aduan terbaru, reported_at DESC
+  .map((s, i) => `${i + 1}. ${s.text.replace(/\s+/g, " ").trim()}`)
   .join("\n");
 ```
 
@@ -1082,7 +1082,7 @@ const complaint_samples_text = samples
   "count_24h": 6,
   "mean_14d": 1.2,
   "z_score": 2.8,
-  "complaint_samples_text": "1. Air PDAM keruh sejak 3 hari, anak saya diare\n2. Warga RT 03 banyak yang sakit perut\n3. Sudah 5 orang di kampung saya kena diare gara-gara air\n4. Air bersih dari PDAM sudah tidak layak minum\n5. Mohon segera ditangani diare yang melanda warga Sumberasih"
+  "complaint_samples": "1. Air PDAM keruh sejak 3 hari, anak saya diare\n2. Warga RT 03 banyak yang sakit perut\n3. Sudah 5 orang di kampung saya kena diare gara-gara air\n4. Air bersih dari PDAM sudah tidak layak minum\n5. Mohon segera ditangani diare yang melanda warga Sumberasih"
 }
 ```
 
@@ -1129,15 +1129,17 @@ Prompt
     │  Variabel: {input_json}   ← disambung dari Chat Input
     ▼
 IBM watsonx.ai (LLM)
-    │  Model: ibm/granite-4-h-small
-    │  (alt: ibm/granite-3-3-8b-instruct)
+    │  Model: mistralai/mistral-small-3-1-24b-instruct-2503
+    │  Endpoint: https://jp-tok.ml.cloud.ibm.com
     │  Temperature: 0.3  (sedikit lebih tinggi untuk ringkasan naratif)
     │  Max tokens: 400
     ▼
 Chat Output
 ```
 
-> `complaint_samples_text` sudah berupa string bernomor dari server — prompt langsung menyisipkannya dari `{input_json}` tanpa preprocessing tambahan di Langflow.
+> `complaint_samples` sudah berupa string bernomor dari server — prompt langsung menyisipkannya dari `{input_json}` tanpa preprocessing tambahan di Langflow.
+>
+> `runAlertSummary()` memakai timeout `LANGFLOW_ALERT_TIMEOUT_MS` (default 10 detik) karena di-await di jalur triage.
 
 ### Fallback
 
@@ -1161,7 +1163,7 @@ Chat Output
     "count_24h": 4,
     "mean_14d": 0.8,
     "z_score": 2.3,
-    "complaint_samples_text": "1. Jalan depan sekolah berlubang makin parah\n2. Jalan rusak di Bantaran sudah renggut 2 korban\n3. Tolong perbaiki jalan Bantaran yang sudah parah\n4. Motor saya rusak karena jalan berlubang di Bantaran"
+    "complaint_samples": "1. Jalan depan sekolah berlubang makin parah\n2. Jalan rusak di Bantaran sudah renggut 2 korban\n3. Tolong perbaiki jalan Bantaran yang sudah parah\n4. Motor saya rusak karena jalan berlubang di Bantaran"
   }
   ```
 - Output yang diharapkan: ringkasan menyebut risiko keselamatan; `opd_list = ["DPU"]`
@@ -1175,7 +1177,7 @@ Chat Output
     "count_24h": 5,
     "mean_14d": 0.5,
     "z_score": 3.1,
-    "complaint_samples_text": "1. Banjir setinggi lutut di RT 01 Dringu\n2. Drainase mampet tidak ditangani\n3. Rumah saya terendam sejak tadi pagi\n4. Banjir di Dringu semakin parah setiap hujan\n5. Saluran air depan rumah saya penuh sampah"
+    "complaint_samples": "1. Banjir setinggi lutut di RT 01 Dringu\n2. Drainase mampet tidak ditangani\n3. Rumah saya terendam sejak tadi pagi\n4. Banjir di Dringu semakin parah setiap hujan\n5. Saluran air depan rumah saya penuh sampah"
   }
   ```
 - Output yang diharapkan: `opd_list` mencakup `"DPU"` (drainase) dan mungkin `"DLH"` (sampah penyebab)

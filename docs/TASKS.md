@@ -232,17 +232,18 @@
 
 ### Kode (Bob)
 
-- [ ] Tambahkan `alertSummaryOutputSchema` ke `src/lib/langflow/schemas.ts` sesuai LANGFLOW_FLOWS.md §Flow 6 (termasuk `BPKAD` dalam enum `opd_list`).
-- [ ] Tambahkan fungsi `runAlertSummary()` ke `src/lib/langflow/client.ts`.
-- [ ] Buat `src/lib/analytics/early-warning.ts`: fungsi `checkEarlyWarning(complaintId)` yang menghitung baseline **tepat 14 hari** per kombinasi `(category, region_id)`, menghitung z-score, dan mengembalikan data lonjakan atau `null` jika tidak ada.
-- [ ] Perbarui pipeline `POST /api/complaints`: setelah aduan tersimpan dan triage selesai, panggil `checkEarlyWarning()`; jika z-score ≥ `ALERT_THRESHOLD_Z` dan count ≥ `ALERT_MIN_COUNT`, insert baris ke `alerts` dengan `summary_status = 'pending_retry'`, lalu panggil `runAlertSummary()` dan perbarui baris dengan ringkasan + `summary_status = 'done'`.
-- [ ] Buat `GET /api/alert`: kembalikan daftar alert aktif (belum di-dismiss) beserta `ai_summary` dan `opd_list`.
-- [ ] Buat `POST /api/alert/check`: endpoint manual untuk trigger pengecekan z-score oleh operator.
-- [ ] Buat `POST /api/alert/[alertId]/dismiss`: simpan ke `alert_dismissals`, tandai alert sebagai selesai.
-- [ ] Buat halaman panel alert `src/app/(operator)/alert/page.tsx`: daftar alert aktif dengan kategori, wilayah, z-score, jumlah aduan, ringkasan AI, rekomendasi OPD, link ke daftar aduan terkait, tombol "Dismiss", dan tombol "Coba Lagi" jika `summary_status = 'pending_retry'`.
-- [ ] Buat halaman dashboard pimpinan `src/app/(pimpinan)/ringkasan/page.tsx`: KPI (total aduan, rata-rata waktu penyelesaian, % closed), grafik tren per kategori (Recharts), choropleth atau bar chart per kecamatan, daftar alert aktif, tabel peringkat kinerja OPD; semua dengan loading state dan empty state; data dari `GET /api/analytics/*` saja (tidak panggil Langflow).
-- [ ] Buat `GET /api/analytics/kpi`, `GET /api/analytics/trend`, `GET /api/analytics/opd-ranking`.
-- [ ] Pastikan `npm run build` dan `npm run lint` lulus.
+- [x] Tambahkan `alertSummaryOutputSchema` ke `src/lib/langflow/schemas.ts` sesuai LANGFLOW_FLOWS.md §Flow 6 (termasuk `BPKAD` dalam enum `opd_list`).
+- [x] Tambahkan fungsi `runAlertSummary()` ke `src/lib/langflow/client.ts`. *(Input `complaint_samples` = satu string bernomor; timeout `LANGFLOW_ALERT_TIMEOUT_MS`.)*
+- [x] Buat `src/lib/analytics/early-warning.ts`: fungsi `checkEarlyWarning(complaintId)` yang menghitung baseline **tepat 14 hari** per kombinasi `(category, region_id)`, menghitung z-score, dan mengembalikan data lonjakan atau `null` jika tidak ada. *(Statistik dihitung fungsi Postgres `alert_window_stats` — terapkan `supabase/migrations/0004_early_warning.sql`. Ekspor `checkEarlyWarningForComplaint(complaintId)`, `checkEarlyWarning(category, regionId)`, `checkAllEarlyWarnings()`.)*
+- [x] Perbarui pipeline `POST /api/complaints`: setelah aduan tersimpan dan triage selesai, panggil `checkEarlyWarning()`; jika z-score ≥ `ALERT_THRESHOLD_Z` dan count ≥ `ALERT_MIN_COUNT`, insert baris ke `alerts` dengan `summary_status = 'pending_retry'`, lalu panggil `runAlertSummary()` dan perbarui baris dengan ringkasan + `summary_status = 'done'`. *(Dipasang di `src/lib/services/triage.ts` sehingga berlaku untuk semua jalur triage; aturan deduplikasi di ARCHITECTURE.md §5.2.)*
+- [x] Buat `GET /api/alert`: kembalikan daftar alert aktif (belum di-dismiss) beserta `ai_summary` dan `opd_list`.
+- [x] Buat `POST /api/alert/check`: endpoint manual untuk trigger pengecekan z-score oleh operator.
+- [x] Buat `POST /api/alert/[alertId]/dismiss`: simpan ke `alert_dismissals`, tandai alert sebagai selesai. *(Catatan wajib. "Coba Lagi" memakai `POST /api/alert/[alertId]/summary`.)*
+- [x] Buat halaman panel alert `src/app/(operator)/alert/page.tsx`: daftar alert aktif dengan kategori, wilayah, z-score, jumlah aduan, ringkasan AI, rekomendasi OPD, link ke daftar aduan terkait, tombol "Dismiss", dan tombol "Coba Lagi" jika `summary_status = 'pending_retry'`.
+- [x] Buat halaman dashboard pimpinan `src/app/(pimpinan)/ringkasan/page.tsx`: KPI (total aduan, rata-rata waktu penyelesaian, % closed), grafik tren per kategori (Recharts), choropleth atau bar chart per kecamatan, daftar alert aktif, tabel peringkat kinerja OPD; semua dengan loading state dan empty state; data dari `GET /api/analytics/*` saja (tidak panggil Langflow). *(Server Component memanggil `src/lib/analytics/dashboard.ts` langsung — fungsi yang sama dengan `GET /api/analytics/*`; tidak memanggil Langflow.)*
+- [x] Buat `GET /api/analytics/kpi`, `GET /api/analytics/trend`, `GET /api/analytics/opd-ranking`. *(+ `GET /api/analytics/regions`.)*
+- [x] Buat `supabase/seed/refresh-demo-timeline.ts`: geser semua timestamp seed dengan selisih yang sama agar aduan diare Sumberasih terbaru ±2 jam sebelum sekarang (fungsi Postgres `shift_seed_timeline`), lalu jalankan early warning untuk semua kombinasi. Aman dijalankan berulang. Jalankan: `npx tsx --env-file=.env.local supabase/seed/refresh-demo-timeline.ts`.
+- [x] Pastikan `npm run build` dan `npm run lint` lulus.
 
 ### Definition of Done
 

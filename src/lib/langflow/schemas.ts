@@ -166,3 +166,13 @@ export const verifyOutputSchema = z.object({
   ai_reason: z.string().min(10),
 });
 export type VerifyOutput = z.infer<typeof verifyOutputSchema>;
+
+// ---------------------------------------------------------------------------
+// Flow 6 — aduin-alert-summary
+// ---------------------------------------------------------------------------
+
+export const alertSummaryOutputSchema = z.object({
+  ai_summary: z.string().min(20),
+  opd_list: z.array(z.enum(OPD_AGENT_SHORT_NAMES)).min(1),
+});
+export type AlertSummaryOutput = z.infer<typeof alertSummaryOutputSchema>;

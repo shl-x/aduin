@@ -1,10 +1,11 @@
 /**
  * src/app/(operator)/dashboard/page.tsx
  * Daftar aduan + filter status/kategori. Server Component — data di-query
- * langsung berdasarkan query string (?status=&category=).
+ * langsung berdasarkan query string (?status=&category=&region=).
+ * ?region= (UUID desa) dipakai tautan "Lihat aduan terkait" dari /alert.
  */
 import Link from "next/link";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,9 +40,9 @@ function latestUrgency(rows: ComplaintRow["triage_results"]): number | null {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; category?: string }>;
+  searchParams: Promise<{ status?: string; category?: string; region?: string }>;
 }) {
-  const { status, category } = await searchParams;
+  const { status, category, region } = await searchParams;
   const supabase = createClient();
 
   let query = supabase
@@ -54,6 +55,14 @@ export default async function DashboardPage({
 
   if (status) query = query.eq("status", status);
   if (category) query = query.eq("effective_category", category);
+  if (region) query = query.eq("region_id", region);
+
+  const { data: regionRow } = region
+    ? await supabase.from("regions").select("name").eq("id", region).maybeSingle()
+    : { data: null };
+  const clearRegionParams = new URLSearchParams();
+  if (status) clearRegionParams.set("status", status);
+  if (category) clearRegionParams.set("category", category);
 
   const { data, error } = await query;
   const complaints = (data ?? []) as unknown as ComplaintRow[];
@@ -67,7 +76,18 @@ export default async function DashboardPage({
         </p>
       </div>
 
-      <DashboardFilters />
+      <div className="flex flex-wrap items-center gap-2">
+        <DashboardFilters />
+        {region && (
+          <Link
+            href={`/dashboard?${clearRegionParams.toString()}`}
+            className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs hover:bg-muted"
+          >
+            Wilayah: {regionRow?.name ?? "tidak dikenal"}
+            <X className="size-3" />
+          </Link>
+        )}
+      </div>
 
       <Card>
         <CardHeader>

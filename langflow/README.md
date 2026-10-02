@@ -233,6 +233,23 @@ Respons yang berhasil akan berisi JSON triage di field:
 
 ---
 
+## Peringatan: Kurung Kurawal di Template Prompt
+
+Komponen **Prompt Template** Langflow memperlakukan `{nama}` sebagai variabel. Contoh JSON
+literal di dalam prompt harus di-escape menjadi `{{` dan `}}`, **dan setiap `{{` harus punya
+pasangan `}}`**. Kurung kurawal ganda yang tidak berpasangan — misalnya kalimat penutup
+"Awali jawaban dengan karakter {{" — membuat template ditolak dengan error **"unclosed tag"**.
+
+Karena itu, instruksi penutup prompt sebaiknya ditulis **dengan kata-kata**, bukan simbol:
+
+```
+Karakter pertama jawabanmu harus kurung kurawal buka, dan karakter terakhirnya harus kurung kurawal tutup.
+```
+
+Contoh penerapannya ada di `langflow/prompts/alert-summary.md`.
+
+---
+
 ## Troubleshooting
 
 | Masalah | Solusi |

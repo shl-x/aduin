@@ -572,84 +572,61 @@ Alert terpicu jika:
 - `z >= ALERT_THRESHOLD_Z` (default: `2.0`) **DAN**
 - `count_24h >= ALERT_MIN_COUNT` (default: `3`)
 
-**SQL lengkap baseline (menggunakan `generate_series` + `LEFT JOIN` agar hari tanpa aduan dihitung 0):**
+**Implementasi:** fungsi Postgres `alert_window_stats(p_now, p_category?, p_region_id?)` di `supabase/migrations/0004_early_warning.sql`, dipanggil lewat `supabase.rpc()` dari `src/lib/analytics/early-warning.ts`. Semua jendela relatif terhadap `p_now` (dikirim aplikasi agar konsisten):
+
+- `count_24h` — aduan dengan `reported_at` di `(p_now − 24 jam, p_now]`.
+- Baseline — `generate_series(p_now − 14 hari, p_now − 1 hari, 1 hari)` menghasilkan **tepat 14 baris**. Setiap titik `day_end` mewakili jendela 24 jam `(day_end − 1 hari, day_end]`; ke-14 jendela berurutan tanpa celah dan tidak tumpang tindih dengan `count_24h`. `LEFT JOIN` membuat hari tanpa aduan dihitung 0.
+- `std_14d` — `STDDEV_POP` dengan batas bawah `1.0` agar z tidak meledak saat baseline nol.
 
 ```sql
--- $1 = category slug, $2 = region_id, $3 = now() (dikirim dari aplikasi agar konsisten)
-
--- 1. Hitung aduan 24 jam terakhir
-SELECT COUNT(*)::int AS count_24h
-FROM complaints
-WHERE effective_category = $1
-  AND region_id           = $2
-  AND reported_at        >= $3 - INTERVAL '24 hours';
-
--- 2. Hitung baseline 14 hari (hari d-15 s/d d-1, exclude 24 jam terakhir)
---    generate_series menghasilkan 14 baris (satu per hari) agar hari tanpa aduan = 0
-WITH days AS (
-  SELECT gs::date AS day
-  FROM generate_series(
-    ($3 - INTERVAL '15 days')::date,
-    ($3 - INTERVAL '1 day')::date,
-    INTERVAL '1 day'
-  ) AS gs
-),
-daily_counts AS (
-  SELECT
-    date_trunc('day', reported_at)::date AS day,
-    COUNT(*)::int AS cnt
+WITH combos AS (               -- kombinasi yang punya ≥1 aduan dalam 24 jam terakhir
+  SELECT effective_category AS category, region_id, COUNT(*)::int AS count_24h
   FROM complaints
-  WHERE effective_category = $1
-    AND region_id           = $2
-    AND reported_at BETWEEN $3 - INTERVAL '15 days'
-                        AND $3 - INTERVAL '1 day'
-  GROUP BY 1
+  WHERE effective_category IS NOT NULL AND region_id IS NOT NULL
+    AND reported_at > p_now - INTERVAL '24 hours' AND reported_at <= p_now
+  GROUP BY 1, 2
+),
+days AS (                      -- tepat 14 baris
+  SELECT gs AS day_end
+  FROM generate_series(p_now - INTERVAL '14 days', p_now - INTERVAL '1 day', INTERVAL '1 day') gs
+),
+daily AS (
+  SELECT cb.category, cb.region_id, d.day_end, COUNT(x.id)::int AS cnt
+  FROM combos cb CROSS JOIN days d
+  LEFT JOIN complaints x
+    ON x.effective_category = cb.category AND x.region_id = cb.region_id
+   AND x.reported_at > d.day_end - INTERVAL '1 day' AND x.reported_at <= d.day_end
+  GROUP BY 1, 2, 3
 )
-SELECT
-  COALESCE(AVG(COALESCE(dc.cnt, 0)), 0)                    AS mean_14d,
-  GREATEST(COALESCE(STDDEV_POP(COALESCE(dc.cnt, 0)), 0), 1.0) AS std_14d
-FROM days d
-LEFT JOIN daily_counts dc ON dc.day = d.day;
+SELECT cb.category, cb.region_id, cb.count_24h,
+       AVG(dl.cnt)                              AS mean_14d,
+       GREATEST(STDDEV_POP(dl.cnt), 1.0)        AS std_14d
+FROM combos cb JOIN daily dl USING (category, region_id)
+GROUP BY cb.category, cb.region_id, cb.count_24h;
 ```
 
-**Pseudocode (alur aplikasi):**
+**Alur aplikasi (`evaluate()` di `early-warning.ts`):**
 
 ```
-function checkEarlyWarning(effectiveCategory, regionId):
-  now = currentTimestamp()
+z = (count_24h - mean_14d) / std_14d
+if z < ALERT_THRESHOLD_Z or count_24h < ALERT_MIN_COUNT: selesai
 
-  count_24h = sql(query_1, [effectiveCategory, regionId, now])
-
-  { mean_14d, std_14d } = sql(query_2, [effectiveCategory, regionId, now])
-  // std_14d sudah >= 1.0 karena GREATEST(..., 1.0) di SQL
-
-  z = (count_24h - mean_14d) / std_14d
-
-  if z >= ALERT_THRESHOLD_Z AND count_24h >= ALERT_MIN_COUNT:
-    existingAlert = findActiveAlert(effectiveCategory, regionId)
-    if existingAlert is null:
-      newAlert = insertAlert({
-        category: effectiveCategory, region_id: regionId,
-        count_24h, mean_14d, std_14d, z_score: z,
-        summary_status: 'pending_retry'   // akan diisi setelah Langflow berhasil
-      })
-      try:
-        summary = await callLangflow('aduin-alert-summary', { alert: newAlert },
-                                     timeout: LANGFLOW_ALERT_TIMEOUT_MS)
-        updateAlert(newAlert.id, { ai_summary: summary.text,
-                                   ai_recommendations: summary.opd_list,
-                                   summary_status: 'done' })
-      catch:
-        // alert sudah tersimpan dengan summary_status = 'pending_retry'
-        // operator bisa menekan "Coba Lagi" di UI
-        logError('aduin-alert-summary gagal', newAlert.id)
-      return newAlert
-  return null
+if ada alert BELUM ditutup untuk (category, region_id):
+    perbarui count_24h / mean / std / z  (triggered_at ikut diperbarui jika alert > 24 jam)
+    jika summary_status = 'pending_retry' → coba ringkas ulang
+elif alert kombinasi itu ditutup operator < 24 jam lalu:
+    lewati (sudah ditangani)
+else:
+    insert alerts (summary_status = 'pending_retry')
+    await runAlertSummary(...) dengan timeout LANGFLOW_ALERT_TIMEOUT_MS
+    berhasil → ai_summary, ai_recommendations, summary_status = 'done'
+    gagal    → tetap 'pending_retry' (tombol "Coba Lagi" di /alert)
 ```
 
 **Kapan dijalankan:**
-- Setiap kali aduan baru berhasil masuk ke tabel `complaints` (di-trigger dari `POST /api/complaints` setelah status `triaged`)
-- Dapat juga dijalankan via cron job (opsional, di luar scope MVP)
+- Setelah triage berhasil (`src/lib/services/triage.ts`) — hanya untuk kombinasi kategori + wilayah aduan tersebut; best-effort, tidak menggagalkan triage.
+- `POST /api/alert/check` (tombol "Periksa Sekarang" di `/alert`) — semua kombinasi.
+- `supabase/seed/refresh-demo-timeline.ts` — setelah menggeser timeline seed.
 
 ---
 

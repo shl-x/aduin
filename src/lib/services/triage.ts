@@ -16,11 +16,15 @@
  * menjalankan clustering untuk aduan tersebut (ARCHITECTURE.md §5.1).
  * Kegagalan embedding/clustering TIDAK BOLEH menggagalkan triage — keduanya
  * dibungkus try/catch terpisah di embedAndCluster().
+ *
+ * Terakhir, deteksi early warning (M6) dijalankan untuk kombinasi
+ * kategori + wilayah aduan ini — juga best-effort (detectSpike()).
  */
 
 import { createClient } from "@/lib/supabase/client";
 import { runTriage, runEmbed } from "@/lib/langflow/client";
 import { runClustering } from "@/lib/analytics/clustering";
+import { checkEarlyWarningForComplaint } from "@/lib/analytics/early-warning";
 import type { TriageOutput } from "@/lib/langflow/schemas";
 
 export interface TriagePipelineResult {
@@ -93,6 +97,8 @@ export async function runTriagePipeline(complaintId: string): Promise<TriagePipe
 
   await embedAndCluster(supabase, complaintId, complaint.text);
 
+  await detectSpike(supabase, complaintId);
+
   return { status: "triaged", triage };
 }
 
@@ -128,6 +134,27 @@ async function embedAndCluster(
     await runClustering(complaintId);
   } catch (err) {
     console.error(`[triage] Pipeline embedding/clustering gagal untuk aduan ${complaintId}:`, err);
+  }
+}
+
+/**
+ * Menjalankan early warning untuk kombinasi (effective_category, region_id)
+ * aduan ini. Ringkasan AI alert baru di-await dengan timeout
+ * LANGFLOW_ALERT_TIMEOUT_MS; kegagalan apa pun hanya di-log.
+ */
+async function detectSpike(
+  supabase: ReturnType<typeof createClient>,
+  complaintId: string
+): Promise<void> {
+  try {
+    const outcome = await checkEarlyWarningForComplaint(supabase, complaintId);
+    if (outcome?.action === "created") {
+      console.log(
+        `[triage] Alert baru ${outcome.alert_id} (${outcome.category}, z=${outcome.z_score}, ringkasan: ${outcome.summary_status})`
+      );
+    }
+  } catch (err) {
+    console.error(`[triage] Early warning gagal untuk aduan ${complaintId}:`, err);
   }
 }
 
