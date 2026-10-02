@@ -7,8 +7,9 @@
 > Semua kurung kurawal literal (contoh format JSON) di-escape menjadi `{{` dan `}}`.
 > Hanya `{input_json}` yang memakai kurung tunggal.
 >
-> Gunakan komponen **IBM watsonx.ai Agent** (bukan LLM biasa) untuk flow ini.
-> Jika Agent tidak stabil, gunakan LLM biasa dengan prompt yang sama.
+> Flow memakai komponen LLM biasa **IBM watsonx.ai** (temperature 0.1, max tokens 800),
+> bukan komponen Agent — Agent di Langflow 1.12 gagal di region Tokyo.
+> Lihat docs/LANGFLOW_FLOWS.md §Flow 4.
 
 ---
 

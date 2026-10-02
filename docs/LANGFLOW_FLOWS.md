@@ -735,33 +735,34 @@ export type OpdAgentOutput = z.infer<typeof opdAgentOutputSchema>;
 
 ### Susunan Komponen Langflow
 
-Flow ini menggunakan komponen **Agent** karena memerlukan kemampuan penalaran multi-langkah.
+Flow ini **tidak** memakai komponen **Agent**. Komponen Agent di Langflow 1.12 bergantung pada fitur *Model Providers* yang gagal di region Tokyo (`jp-tok`), sehingga flow disusun sebagai rantai LLM biasa — sama seperti flow triage. Penalaran multi-langkah cukup ditangani lewat instruksi di prompt.
 
 ```
 Chat Input
     │
     ▼
-Prompt
+Prompt Template
     │  Template: lihat langflow/prompts/opd-agent.md
     │  Variabel: {input_json}   ← disambung dari Chat Input
     ▼
-IBM watsonx.ai Agent
+IBM watsonx.ai
     │  Model: ibm/granite-4-h-small
-    │  (alt: ibm/granite-3-3-8b-instruct)
+    │  Endpoint: https://jp-tok.ml.cloud.ibm.com
     │  Temperature: 0.1
-    │  Max iterations: 5
-    │  Tools: (tidak perlu tool eksternal — reasoning internal)
+    │  Max tokens: 800
     ▼
 Chat Output
 ```
 
-> **Alternatif tanpa komponen Agent:** Jika komponen Agent tidak stabil, gunakan komponen LLM biasa dengan instruksi chain-of-thought di prompt. Hasilnya harus tetap berupa JSON yang sama.
+> Output bisa sampai 800 token, jadi `runOpdAgent()` di `client.ts` memakai timeout 60 detik (flow lain 15 detik).
 
 ### Fallback
 
 - Jika flow gagal → tampilkan pesan error di UI: *"Gagal membuat rencana koordinasi. Silakan coba lagi."*
 - Aduan tidak hilang; rencana sederhana (1 task ke `effective_opd_id`) yang dibuat otomatis saat triage tetap aktif.
 - Rencana `ai_generated` hanya menggantikan rencana sederhana setelah berhasil.
+- Penggantian dilakukan atomik oleh fungsi Postgres `replace_coordination_plan` (`supabase/migrations/0003_coordination_rpc.sql`): hapus plan lama (tasks & dependencies ikut terhapus lewat cascade), lalu insert plan + tasks + dependencies baru. Jika satu langkah gagal, seluruh perubahan di-rollback.
+- Input `triage` yang dikirim adalah triage **efektif**: kategori & OPD dari `complaints.effective_*` (sudah memperhitungkan override), `handling_path` dari override terbaru jika ada.
 
 ### Test Cases Playground
 

@@ -68,3 +68,37 @@ export async function getSessionRole(): Promise<UserRole | null> {
   const role = data?.role as UserRole | undefined;
   return role && valid.includes(role) ? role : null;
 }
+
+export interface SessionProfile {
+  id: string;
+  role: UserRole;
+  opd_id: string | null;
+}
+
+/**
+ * Ambil profil lengkap pengguna yang sedang login (id, role, opd_id).
+ * Dipakai fitur yang bergantung pada OPD petugas (portal /tugas, PATCH tugas).
+ * Mengembalikan null jika tidak ada sesi aktif atau role tidak valid.
+ */
+export async function getSessionProfile(): Promise<SessionProfile | null> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { createClient } = await import("@/lib/supabase/client");
+  const adminClient = createClient();
+  const { data } = await adminClient
+    .from("profiles")
+    .select("role, opd_id")
+    .eq("id", user.id)
+    .single();
+
+  const valid: UserRole[] = ["warga", "operator", "petugas_opd", "pimpinan"];
+  const role = data?.role as UserRole | undefined;
+  if (!role || !valid.includes(role)) return null;
+
+  return { id: user.id, role, opd_id: (data?.opd_id as string | null) ?? null };
+}

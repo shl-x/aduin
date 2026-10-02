@@ -6,8 +6,10 @@
  * salinan per route group — dua page.tsx yang resolve ke path URL yang sama
  * dari route group berbeda akan gagal di-build oleh Next.js App Router).
  *
- * Menampilkan: info aduan, kartu "Kenapa AI memutuskan ini", riwayat
- * override, dan form override (khusus operator).
+ * Menampilkan: info aduan, kartu "Kenapa AI memutuskan ini", rencana
+ * koordinasi OPD (M4 — tombol "Buat Rencana Koordinasi" untuk operator,
+ * tombol status tugas untuk petugas_opd), riwayat override, dan form
+ * override (khusus operator).
  */
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -15,8 +17,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { TriageOverrideForm } from "@/components/triage-override-form";
+import { CoordinationPlan } from "@/components/coordination-plan";
+import { GeneratePlanButton } from "@/components/generate-plan-button";
 import { createClient } from "@/lib/supabase/client";
-import { getSessionRole } from "@/lib/supabase/server";
+import { getSessionProfile } from "@/lib/supabase/server";
+import { getCoordinationPlan, type CoordinationPlanView } from "@/lib/services/coordination";
 import { CATEGORIES } from "@/lib/constants/categories";
 import { STATUS_LABELS, STATUS_BADGE_VARIANT, type ComplaintStatus } from "@/lib/constants/status";
 
@@ -33,7 +38,8 @@ export default async function AduanDetailPage({
 }) {
   const { id } = await params;
   const supabase = createClient();
-  const role = await getSessionRole();
+  const profile = await getSessionProfile();
+  const role = profile?.role ?? null;
 
   const { data: complaint } = await supabase
     .from("complaints")
@@ -59,6 +65,15 @@ export default async function AduanDetailPage({
     .select("field_overridden, old_value, new_value, note, created_at")
     .eq("complaint_id", id)
     .order("created_at", { ascending: false });
+
+  let plan: CoordinationPlanView | null = null;
+  let planError: string | null = null;
+  try {
+    plan = await getCoordinationPlan(supabase, id);
+  } catch (err) {
+    planError = err instanceof Error ? err.message : "Gagal memuat rencana koordinasi.";
+  }
+  const planStarted = plan?.tasks.some((t) => t.status !== "belum_mulai") ?? false;
 
   const region = complaint.region as unknown as { name: string } | null;
   const opd = complaint.opd as unknown as { short_name: string; name: string } | null;
@@ -135,6 +150,40 @@ export default async function AduanDetailPage({
               <dt className="text-muted-foreground col-span-2 mt-1">Alasan</dt>
               <dd className="col-span-2 text-foreground">{triage.reason}</dd>
             </dl>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Rencana Koordinasi</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {planError ? (
+            <p className="text-sm text-destructive">Gagal memuat rencana koordinasi: {planError}</p>
+          ) : (
+            <CoordinationPlan
+              plan={plan}
+              viewerOpdId={role === "petugas_opd" ? (profile?.opd_id ?? null) : null}
+            />
+          )}
+
+          {role === "operator" && (
+            <>
+              <Separator />
+              {complaint.status === "triaged" && !planStarted ? (
+                <GeneratePlanButton
+                  complaintId={id}
+                  hasAiPlan={plan?.plan_type === "ai_generated"}
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {planStarted
+                    ? "Rencana tidak bisa diganti karena petugas OPD sudah mulai mengerjakan tugas."
+                    : "Rencana koordinasi AI hanya bisa dibuat untuk aduan berstatus \"Sudah Ditriase\"."}
+                </p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

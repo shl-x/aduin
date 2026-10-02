@@ -159,21 +159,21 @@
 
 **Flow `aduin-opd-agent`:**
 - [ ] Buat flow baru bernama `aduin-opd-agent` di UI Langflow.
-- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 4: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/opd-agent.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `ibm/granite-4-h-small`, temperature 0.0, max tokens 600) → **Chat Output**.
+- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 4: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/opd-agent.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `ibm/granite-4-h-small`, temperature 0.1, max tokens 800 — tanpa komponen Agent) → **Chat Output**.
 - [ ] Tes di Playground dengan test cases dari LANGFLOW_FLOWS.md §Flow 4 (TC-1 jalan rusak sekolah multi-OPD, TC-2 diare single OPD, TC-3 banjir kompleks); verifikasi output memiliki `sequence` unik, `depends_on` valid, dan `opd_short_name` dari daftar yang berlaku (termasuk `BPKAD` untuk anggaran).
 - [ ] Setelah semua TC lulus, export flow ke `langflow/flows/aduin-opd-agent.json`.
 - [ ] Catat Flow ID ke `.env.local` sebagai `LANGFLOW_FLOW_OPD_AGENT_ID`.
 
 ### Kode (Bob)
 
-- [ ] Tambahkan `opdAgentOutputSchema` ke `src/lib/langflow/schemas.ts` sesuai LANGFLOW_FLOWS.md §Flow 4 (termasuk `superRefine` validasi sequence unik dan `depends_on` hanya merujuk sequence lebih kecil).
-- [ ] Tambahkan fungsi `runOpdAgent()` ke `src/lib/langflow/client.ts`.
-- [ ] Buat `POST /api/coordination/[id]`: panggil `runOpdAgent()`, validasi Zod, hapus `coordination_plan` dan `tasks` lama (plan_type sederhana), insert plan baru dengan tasks dan dependencies; tandai `plan_type = 'ai_generated'`; jika gagal kembalikan error tanpa mengubah plan yang ada.
-- [ ] Buat `PATCH /api/tasks/[taskId]`: update `tasks.status` (`belum_mulai|proses|selesai`) oleh petugas_opd yang ditugaskan; perbarui `complaints.status` ke `in_progress` jika belum.
-- [ ] Perbarui halaman detail aduan `/aduan/[id]`: tampilkan daftar sub-tugas dengan OPD, urutan, ketergantungan, dan status; tombol "Buat Rencana Koordinasi" untuk operator (muncul setelah aduan `triaged`); status tiap sub-tugas bisa diperbarui oleh petugas_opd dari halaman yang sama.
-- [ ] Buat halaman portal tugas `src/app/(opd)/tugas/page.tsx`: daftar tasks yang ditugaskan ke OPD pengguna yang sedang login; filter by status; link ke detail aduan.
-- [ ] Buat halaman detail tugas `src/app/(opd)/tugas/[taskId]/page.tsx`: detail sub-tugas, tombol perbarui status.
-- [ ] Pastikan `npm run build` dan `npm run lint` lulus.
+- [x] Tambahkan `opdAgentOutputSchema` ke `src/lib/langflow/schemas.ts` sesuai LANGFLOW_FLOWS.md §Flow 4 (termasuk `superRefine` validasi sequence unik dan `depends_on` hanya merujuk sequence lebih kecil).
+- [x] Tambahkan fungsi `runOpdAgent()` ke `src/lib/langflow/client.ts`.
+- [x] Buat `POST /api/coordination/[id]`: panggil `runOpdAgent()`, validasi Zod, hapus `coordination_plan` dan `tasks` lama (plan_type sederhana), insert plan baru dengan tasks dan dependencies; tandai `plan_type = 'ai_generated'`; jika gagal kembalikan error tanpa mengubah plan yang ada. *(Transaksi via fungsi Postgres `replace_coordination_plan` — terapkan `supabase/migrations/0003_coordination_rpc.sql`.)*
+- [x] Buat `PATCH /api/tasks/[taskId]`: update `tasks.status` (`belum_mulai|proses|selesai`) oleh petugas_opd yang ditugaskan; perbarui `complaints.status` ke `in_progress` jika belum.
+- [x] Perbarui halaman detail aduan `/aduan/[id]`: tampilkan daftar sub-tugas dengan OPD, urutan, ketergantungan, dan status; tombol "Buat Rencana Koordinasi" untuk operator (muncul setelah aduan `triaged`); status tiap sub-tugas bisa diperbarui oleh petugas_opd dari halaman yang sama.
+- [x] Buat halaman portal tugas `src/app/(opd)/tugas/page.tsx`: daftar tasks yang ditugaskan ke OPD pengguna yang sedang login; filter by status; link ke detail aduan.
+- [ ] Buat halaman detail tugas `src/app/(opd)/tugas/[taskId]/page.tsx`: detail sub-tugas, tombol perbarui status. *(Di luar cakupan sesi M4 — perubahan status sudah bisa dilakukan langsung dari `/tugas` dan `/aduan/[id]`.)*
+- [x] Pastikan `npm run build` dan `npm run lint` lulus.
 
 ### Definition of Done
 

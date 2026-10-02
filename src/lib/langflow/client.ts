@@ -20,14 +20,18 @@ import {
   clarifyOutputSchema,
   triageOutputSchema,
   embedOutputSchema,
+  opdAgentOutputSchema,
   type ClarifyOutput,
   type TriageOutput,
   type EmbedOutput,
+  type OpdAgentOutput,
 } from "./schemas";
 
 const BASE_URL = process.env.LANGFLOW_BASE_URL ?? "http://127.0.0.1:7860";
 const API_KEY = process.env.LANGFLOW_API_KEY ?? "";
 const DEFAULT_TIMEOUT_MS = 15_000;
+/** aduin-opd-agent menghasilkan hingga 800 token — butuh waktu lebih lama. */
+const OPD_AGENT_TIMEOUT_MS = 60_000;
 
 export class LangflowParseError extends Error {
   constructor(public rawText: string) {
@@ -124,6 +128,37 @@ export async function runEmbed(input: {
   } catch (err) {
     console.error("[Langflow] aduin-embed gagal:", err instanceof Error ? err.message : err);
     return null;
+  }
+}
+
+export type OpdAgentResult =
+  | { ok: true; data: OpdAgentOutput }
+  | { ok: false; error: string };
+
+/**
+ * Flow 4 — aduin-opd-agent. Menyusun rencana koordinasi lintas OPD.
+ * Berbeda dengan runTriage(), kegagalan dikembalikan sebagai pesan (bukan
+ * hanya null) agar operator tahu penyebabnya — rencana lama tidak disentuh.
+ */
+export async function runOpdAgent(input: {
+  complaint_text: string;
+  region_name: string;
+  triage: {
+    category: string;
+    opd_short_name: string;
+    urgency: number;
+    impact: string;
+    handling_path: string;
+    reason: string;
+  };
+}): Promise<OpdAgentResult> {
+  try {
+    const data = await runFlow("opdAgent", input, opdAgentOutputSchema, OPD_AGENT_TIMEOUT_MS);
+    return { ok: true, data };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Langflow] aduin-opd-agent gagal:", message);
+    return { ok: false, error: message };
   }
 }
 
