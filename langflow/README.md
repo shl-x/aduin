@@ -91,7 +91,7 @@ akan merujuk ke Global Variables ini.
 |--------------|-------|------|
 | `WATSONX_API_KEY` | API key IBM watsonx.ai Anda | `Credential` |
 | `WATSONX_PROJECT_ID` | Project ID dari IBM watsonx.ai | `Generic` |
-| `WATSONX_URL` | URL endpoint watsonx.ai (contoh: `https://us-south.ml.cloud.ibm.com`) | `Generic` |
+| `WATSONX_URL` | URL endpoint watsonx.ai — Aduin memakai region Tokyo: `https://jp-tok.ml.cloud.ibm.com` | `Generic` |
 
 > **Cara mendapatkan nilai:**
 > - **API key:** Masuk ke [IBM Cloud](https://cloud.ibm.com) → Manage → Access (IAM) → API keys → Create.
@@ -258,5 +258,5 @@ Contoh penerapannya ada di `langflow/prompts/alert-summary.md`.
 | `404 Not Found` untuk flow ID | Pastikan UUID di `.env.local` cocok dengan URL flow di Langflow |
 | Model watsonx.ai tidak muncul di dropdown | Cek `WATSONX_API_KEY` dan `WATSONX_PROJECT_ID` di Global Variables |
 | Output bukan JSON valid | Cek prompt — model mungkin menambahkan teks di luar JSON; naikkan instruksi di prompt |
-| Embedding dimensi tidak cocok | Pastikan model di komponen Embeddings adalah `multilingual-e5-large` (1024 dim); update `EMBEDDING_DIMENSION` di `.env.local` jika ganti model |
+| Embedding dimensi tidak cocok | Pastikan model di komponen IBM watsonx.ai Embeddings adalah `ibm/granite-embedding-278m-multilingual` (768 dim), sesuai kolom `vector(768)` dan `EMBEDDING_DIMENSION` |
 | Flow timeout | Naikkan `LANGFLOW_ALERT_TIMEOUT_MS` di `.env.local`; cek koneksi ke watsonx.ai |

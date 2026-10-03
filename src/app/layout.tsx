@@ -10,6 +10,7 @@
  */
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { SidebarNav } from "@/components/sidebar-nav";
@@ -22,7 +23,10 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Aduin — Analitik Pengaduan Masyarakat",
+  title: {
+    default: "Aduin — Aduin aja, sisanya kami yang urus.",
+    template: "%s · Aduin",
+  },
   description:
     "Otak analitik di balik kanal pengaduan masyarakat pemerintah daerah.",
 };
@@ -43,9 +47,12 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {/* Header demo — hanya tampil saat NEXT_PUBLIC_DEMO_MODE=true */}
         <header className="h-10 border-b bg-muted/40 flex items-center px-4 gap-3 shrink-0">
-          <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
+          <Link
+            href="/"
+            className="text-xs font-semibold text-muted-foreground tracking-wide uppercase hover:text-foreground"
+          >
             Aduin Demo
-          </span>
+          </Link>
           <div className="ml-auto">
             <RoleSwitcher currentRole={role} />
           </div>

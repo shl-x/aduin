@@ -1,7 +1,7 @@
 /**
  * supabase/seed/accounts.ts
  *
- * Buat 5 akun demo via Supabase Auth Admin API, lalu set profil yang benar.
+ * Buat 6 akun demo via Supabase Auth Admin API, lalu set profil yang benar.
  * Password diambil dari DEMO_SEED_PASSWORD di .env.local.
  *
  * Akun:
@@ -27,13 +27,22 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   { email: "operator@demo.aduin", fullName: "Operator Demo", role: "operator" },
   { email: "pu@demo.aduin",       fullName: "Petugas DPU",   role: "petugas_opd", opdShortName: "DPU" },
   { email: "dinkes@demo.aduin",   fullName: "Petugas Dinkes",role: "petugas_opd", opdShortName: "Dinkes" },
+  // BPKAD dibutuhkan demo Step 5–6: rencana AI jalan rusak berisi tugas anggaran BPKAD
+  // yang harus selesai sebelum tugas perbaikan DPU bisa dimulai.
+  { email: "bpkad@demo.aduin",    fullName: "Petugas BPKAD", role: "petugas_opd", opdShortName: "BPKAD" },
   { email: "pimpinan@demo.aduin", fullName: "Pimpinan Demo", role: "pimpinan" },
 ];
 
 /** Map email → auth user id (diisi setelah pembuatan akun) */
 export const DEMO_ACCOUNT_IDS: Record<string, string> = {};
 
-export async function seedAccounts(): Promise<void> {
+/**
+ * Membuat akun demo yang belum ada + upsert profil. `syncPasswords: false`
+ * (dipakai Reset Demo) tidak menyentuh password akun yang sudah ada agar
+ * sesi pengguna yang sedang login tidak terganggu.
+ */
+export async function seedAccounts(options: { syncPasswords?: boolean } = {}): Promise<void> {
+  const syncPasswords = options.syncPasswords !== false;
   const supabase = createClient();
 
   const password = process.env.DEMO_SEED_PASSWORD;
@@ -48,7 +57,9 @@ export async function seedAccounts(): Promise<void> {
 
     let userId: string;
 
-    if (found) {
+    if (found && !syncPasswords) {
+      userId = found.id;
+    } else if (found) {
       userId = found.id;
       const { error: updateErr } = await supabase.auth.admin.updateUserById(
         userId,

@@ -87,7 +87,9 @@ export function TriageOverrideForm({ complaintId }: { complaintId: string }) {
           }}
         >
           <SelectTrigger className="w-44">
-            <SelectValue />
+            <SelectValue>
+              {(v: string | null) => FIELD_OPTIONS.find((f) => f.value === v)?.label ?? "Pilih field"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {FIELD_OPTIONS.map((f) => (
@@ -100,7 +102,9 @@ export function TriageOverrideForm({ complaintId }: { complaintId: string }) {
 
         <Select value={value} onValueChange={(v) => setValue(v ?? "")}>
           <SelectTrigger className="w-56">
-            <SelectValue placeholder="Pilih nilai baru" />
+            <SelectValue>
+              {(v: string | null) => valueOptions.find((o) => o.value === v)?.label ?? "Pilih nilai baru"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {valueOptions.map((o) => (

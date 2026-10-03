@@ -21,6 +21,17 @@ import { COMPLAINT_STATUSES, STATUS_LABELS } from "@/lib/constants/status";
 
 const ALL = "__all__";
 
+// Label dirender eksplisit lewat children-function Select.Value — tanpa ini
+// Base UI bisa menampilkan nilai mentah ("__all__") sebelum popup dibuka.
+const STATUS_ITEMS: Record<string, string> = {
+  [ALL]: "Semua status",
+  ...Object.fromEntries(COMPLAINT_STATUSES.map((s) => [s, STATUS_LABELS[s]])),
+};
+const CATEGORY_ITEMS: Record<string, string> = {
+  [ALL]: "Semua kategori",
+  ...Object.fromEntries(CATEGORIES.map((c) => [c.slug, c.label])),
+};
+
 export function DashboardFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,7 +53,7 @@ export function DashboardFilters() {
     <div className="flex flex-wrap items-center gap-2">
       <Select value={status} onValueChange={(v) => updateParam("status", v)}>
         <SelectTrigger className="w-44">
-          <SelectValue placeholder="Semua status" />
+          <SelectValue>{(v: string | null) => STATUS_ITEMS[v ?? ALL] ?? "Semua status"}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={ALL}>Semua status</SelectItem>
@@ -56,7 +67,7 @@ export function DashboardFilters() {
 
       <Select value={category} onValueChange={(v) => updateParam("category", v)}>
         <SelectTrigger className="w-56">
-          <SelectValue placeholder="Semua kategori" />
+          <SelectValue>{(v: string | null) => CATEGORY_ITEMS[v ?? ALL] ?? "Semua kategori"}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={ALL}>Semua kategori</SelectItem>

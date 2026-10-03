@@ -4,9 +4,12 @@
  * Supabase lalu diteruskan ke PetaClient (Client Component) yang me-render
  * Leaflet lewat dynamic import ssr:false.
  */
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/client";
 import { PetaClient } from "@/components/peta/peta-client";
 import type { ComplaintMarker, KecamatanStat, ClusterInfo } from "@/components/peta/types";
+
+export const metadata: Metadata = { title: "Peta Hotspot" };
 
 interface ComplaintQueryRow {
   id: string;

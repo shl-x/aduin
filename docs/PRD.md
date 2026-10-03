@@ -109,7 +109,7 @@ Membutuhkan gambaran besar: kecamatan mana paling banyak aduan, kategori masalah
 - [ ] Data seed dapat dimuat ulang (reset) dari UI tanpa perlu akses database langsung.
 - [ ] Data seed mencakup ±150 aduan di minimal 5 kecamatan, dengan minimal 5 kategori berbeda.
 - [ ] Setiap aduan dalam data seed memiliki label kategori manual (`label_manual`) untuk mengukur akurasi triage.
-- [ ] Data seed menyertakan lonjakan tersembunyi: ≥ 5 aduan dengan kategori "Kesehatan — Diare/Air Keruh" di satu desa dalam rentang 48 jam, sebaran timestamp realistis.
+- [ ] Data seed menyertakan lonjakan tersembunyi: ≥ 5 aduan dengan kategori "Kesehatan & Sanitasi" (slug `kesehatan_diare`) di satu desa dalam rentang 48 jam, sebaran timestamp realistis.
 
 ---
 
@@ -218,7 +218,7 @@ Sistem memproses aduan. Dalam < 10 detik, kartu aduan muncul dengan hasil triage
 Demonstrator membuka halaman Peta Hotspot. Aduan baru bergabung ke cluster "Kerusakan Jalan — Kec. Bantaran" yang sudah berisi aduan serupa dari data seed (jarak ≤ 500 m, dalam 14 hari). Marker aduan baru muncul di koordinat aslinya; warna agregat kecamatan Bantaran menggelap.
 
 **Step 4 — Early Warning Lonjakan Diare**
-Di panel alert, peringatan muncul hasil deteksi z-score pada data seed: *"Lonjakan aduan Kesehatan — Diare/Air Keruh di Desa Sumberasih (z-score: 2.8, 6 aduan dalam 24 jam terakhir vs baseline 1.2/hari)."* Alert menyertakan ringkasan AI: *"Terdapat lonjakan signifikan keluhan diare dan air keruh di Desa Sumberasih dalam 24 jam terakhir, kemungkinan terkait kualitas air bersih."* Rekomendasi: Dinas Kesehatan untuk investigasi lapangan, PDAM untuk cek kualitas air.
+Di panel alert, peringatan muncul hasil deteksi z-score pada data seed: *"Lonjakan Kesehatan & Sanitasi — Sumberasih (6 aduan dalam 24 jam terakhir vs baseline 14 hari, z-score jauh di atas ambang 2.0)."* Alert menyertakan ringkasan AI: *"Terdapat lonjakan signifikan keluhan diare dan air keruh di Desa Sumberasih dalam 24 jam terakhir, kemungkinan terkait kualitas air bersih."* Rekomendasi: Dinas Kesehatan untuk investigasi lapangan, PDAM untuk cek kualitas air.
 
 **Step 5 — Koordinasi Lintas OPD**
 Operator membuka aduan jalan rusak dan menekan "Buat Rencana Koordinasi". AI menghasilkan: (1) Dinas PU — survei kerusakan, (2) BPKAD — alokasi anggaran darurat (bergantung #1), (3) Dinas PU — perbaikan fisik (bergantung #2).

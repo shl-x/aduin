@@ -1,176 +1,105 @@
 /**
  * supabase/seed/fix-coordinates.ts
  *
- * Perbaikan koordinat untuk data yang SUDAH ADA di database (tidak menghapus
- * apa pun — triage_results, complaint_embeddings, coordination_plans, tasks,
- * dst. tetap utuh). Dipakai sekali setelah KECAMATAN_CENTERS di
- * supabase/seed/geo.ts diperbaiki (koordinat versi awal keliru menempatkan
- * kelima kecamatan di sekitar Kota Probolinggo, padahal kelimanya ada di
- * Kabupaten Probolinggo — wilayah administratif berbeda).
+ * Memperbarui koordinat data yang SUDAH ADA di database ke tata letak
+ * terbaru (supabase/seed/geo.ts + placement.ts) tanpa menghapus apa pun —
+ * triage_results, complaint_embeddings, coordination_plans, tasks, ai_cache,
+ * dst. tetap utuh.
  *
  * Alur:
- *   1. Baca semua regions saat ini (lat/lng LAMA).
- *   2. Hitung koordinat BARU: kecamatan dari KECAMATAN_CENTERS, desa dari
- *      desaCoordinate() (rumus sama persis dengan regions.ts).
- *   3. Untuk tiap desa, hitung delta (baru - lama) lalu geser SEMUA aduan
- *      yang region_id-nya desa itu dengan delta yang sama (translasi kaku) —
- *      ini mempertahankan jarak relatif antar-aduan dalam satu desa apa
- *      adanya, termasuk cluster jalan rusak Bantaran yang harus tetap
- *      berjarak <= 500 m satu sama lain.
- *   4. Update tabel regions ke koordinat baru.
- *   5. Jalankan recomputeAllClusters() supaya cluster konsisten dengan
- *      koordinat baru.
+ *   1. regions: kecamatan → KECAMATAN_CENTERS; desa → koordinat asli
+ *      (DESA_FIXED_COORDS: Bantaran, Karanganyar, Legundi) atau 1–3 km dari
+ *      pusat kecamatan (desaCoordinate). Nilai diambil dari REGIONS di
+ *      regions.ts sehingga identik dengan seed baru.
+ *   2. Aduan seed: seedComplaintCoordinate() — rumus yang sama dengan
+ *      complaints.ts (acak deterministik 150–800 m di sekitar desanya;
+ *      cluster jalan rusak Bantaran 30–200 m dari Desa Bantaran).
+ *   3. Aduan non-seed (dibuat lewat /lapor): digeser kaku mengikuti
+ *      perpindahan wilayahnya, sehingga posisinya relatif ke desa tetap.
+ *   4. Clustering ulang seluruh aduan (recomputeAllClusters) — lokal, tanpa
+ *      Langflow.
  *
- * Idempoten: kalau dijalankan lagi setelah koordinat sudah benar, lat/lng
- * "lama" yang dibaca dari DB sudah sama dengan hasil desaCoordinate() /
- * KECAMATAN_CENTERS (fungsi murni, deterministik) — delta jadi 0, tidak ada
- * perubahan lagi.
+ * Idempoten: run kedua tidak mengubah apa pun (semua rumus deterministik).
  *
  * Jalankan: npx tsx --env-file=.env.local supabase/seed/fix-coordinates.ts
  */
 
 import { createClient } from "../../src/lib/supabase/client";
-import { KECAMATAN_CENTERS, desaCoordinate, type LatLng } from "./geo";
 import { recomputeAllClusters } from "../../src/lib/analytics/clustering";
+import { REGIONS } from "./regions";
+import { seedComplaintCoordinate } from "./placement";
 
 type SupabaseAdminClient = ReturnType<typeof createClient>;
 
-interface RegionRow {
-  id: string;
-  name: string;
-  level: "kecamatan" | "desa";
-  parent_id: string | null;
-  lat: number | null;
-  lng: number | null;
+const EPSILON = 1e-9;
+
+function changed(aLat: number | null, aLng: number | null, bLat: number, bLng: number): boolean {
+  return aLat === null || aLng === null || Math.abs(aLat - bLat) > EPSILON || Math.abs(aLng - bLng) > EPSILON;
 }
 
 async function main(): Promise<void> {
   const supabase = createClient();
 
-  const { data: regions, error } = await supabase
-    .from("regions")
-    .select("id, name, level, parent_id, lat, lng");
-  if (error) throw new Error(`Gagal membaca regions: ${error.message}`);
-
-  const rows = (regions ?? []) as RegionRow[];
-  const kecamatanRows = rows.filter((r) => r.level === "kecamatan");
-  const desaRows = rows.filter((r) => r.level === "desa");
-  const kecamatanNameById = new Map(kecamatanRows.map((k) => [k.id, k.name]));
-
   // ---------------------------------------------------------------------
-  // 1-2. Hitung koordinat baru + delta per desa
+  // 1. regions
   // ---------------------------------------------------------------------
-  interface DesaUpdate {
-    id: string;
-    oldLat: number | null;
-    oldLng: number | null;
-    newLat: number;
-    newLng: number;
-  }
+  const { data: dbRegions, error: regionErr } = await supabase.from("regions").select("id, name, lat, lng");
+  if (regionErr) throw new Error(`Gagal membaca regions: ${regionErr.message}`);
 
-  const desaUpdates: DesaUpdate[] = [];
-  const skippedNoKecamatan: string[] = [];
-
-  for (const desaRow of desaRows) {
-    const kecamatanName = desaRow.parent_id ? kecamatanNameById.get(desaRow.parent_id) : undefined;
-    const center: LatLng | undefined = kecamatanName ? KECAMATAN_CENTERS[kecamatanName] : undefined;
-
-    if (!kecamatanName || !center) {
-      skippedNoKecamatan.push(desaRow.name);
-      continue;
-    }
-
-    const { lat, lng } = desaCoordinate(kecamatanName, desaRow.name, center);
-    desaUpdates.push({ id: desaRow.id, oldLat: desaRow.lat, oldLng: desaRow.lng, newLat: lat, newLng: lng });
-  }
-
-  if (skippedNoKecamatan.length > 0) {
-    console.warn(
-      `⚠️  Desa dilewati (kecamatan induk tidak dikenal di KECAMATAN_CENTERS): ${skippedNoKecamatan.join(", ")}`
-    );
-  }
-
-  // ---------------------------------------------------------------------
-  // 3. Geser aduan sesuai delta desa-nya (translasi kaku, jaga jarak relatif)
-  // ---------------------------------------------------------------------
-  let complaintsShifted = 0;
-
-  for (const update of desaUpdates) {
-    if (update.oldLat == null || update.oldLng == null) continue;
-
-    const deltaLat = update.newLat - update.oldLat;
-    const deltaLng = update.newLng - update.oldLng;
-
-    // Sudah benar (idempoten) — tidak perlu query/update aduan sama sekali.
-    if (Math.abs(deltaLat) < 1e-9 && Math.abs(deltaLng) < 1e-9) continue;
-
-    const { data: complaints, error: complaintsErr } = await supabase
-      .from("complaints")
-      .select("id, lat, lng")
-      .eq("region_id", update.id)
-      .not("lat", "is", null)
-      .not("lng", "is", null);
-
-    if (complaintsErr) {
-      console.error(`Gagal membaca aduan untuk region ${update.id}:`, complaintsErr.message);
-      continue;
-    }
-
-    for (const c of complaints ?? []) {
-      const lat = c.lat as number;
-      const lng = c.lng as number;
-      const { error: updateErr } = await supabase
-        .from("complaints")
-        .update({ lat: lat + deltaLat, lng: lng + deltaLng })
-        .eq("id", c.id as string);
-
-      if (updateErr) {
-        console.error(`Gagal update koordinat aduan ${c.id}:`, updateErr.message);
-        continue;
-      }
-      complaintsShifted++;
-    }
-  }
-
-  console.log(`📍 Aduan digeser mengikuti desanya: ${complaintsShifted}`);
-
-  // ---------------------------------------------------------------------
-  // 4. Update koordinat regions (kecamatan + desa)
-  // ---------------------------------------------------------------------
+  const target = new Map(REGIONS.map((r) => [r.id, r]));
+  const regionDelta = new Map<string, { dLat: number; dLng: number }>();
   let regionsUpdated = 0;
+  const unknownRegions: string[] = [];
 
-  for (const kec of kecamatanRows) {
-    const center = KECAMATAN_CENTERS[kec.name];
-    if (!center) continue;
-    if (kec.lat === center.lat && kec.lng === center.lng) continue; // idempoten
-
-    const { error: updateErr } = await supabase
-      .from("regions")
-      .update({ lat: center.lat, lng: center.lng })
-      .eq("id", kec.id);
-    if (updateErr) {
-      console.error(`Gagal update koordinat kecamatan ${kec.name}:`, updateErr.message);
+  for (const r of dbRegions ?? []) {
+    const t = target.get(r.id);
+    if (!t) {
+      unknownRegions.push(r.name);
       continue;
     }
-    regionsUpdated++;
-  }
-
-  for (const update of desaUpdates) {
-    const { error: updateErr } = await supabase
-      .from("regions")
-      .update({ lat: update.newLat, lng: update.newLng })
-      .eq("id", update.id);
-    if (updateErr) {
-      console.error(`Gagal update koordinat desa ${update.id}:`, updateErr.message);
-      continue;
+    if (r.lat !== null && r.lng !== null) {
+      regionDelta.set(r.id, { dLat: t.lat - r.lat, dLng: t.lng - r.lng });
     }
+    if (!changed(r.lat, r.lng, t.lat, t.lng)) continue;
+    const { error } = await supabase.from("regions").update({ lat: t.lat, lng: t.lng }).eq("id", r.id);
+    if (error) throw new Error(`Gagal update koordinat ${r.name}: ${error.message}`);
     regionsUpdated++;
   }
-
-  console.log(`📍 Baris regions diperbarui: ${regionsUpdated}\n`);
+  console.log(`📍 regions diperbarui: ${regionsUpdated}`);
+  if (unknownRegions.length > 0) {
+    console.warn(`⚠️  Wilayah di luar seed dilewati: ${unknownRegions.join(", ")}`);
+  }
 
   // ---------------------------------------------------------------------
-  // 5. Clustering ulang mengikuti koordinat baru
+  // 2–3. complaints
+  // ---------------------------------------------------------------------
+  const { data: complaints, error: complaintErr } = await supabase
+    .from("complaints")
+    .select("id, region_id, lat, lng, is_seed");
+  if (complaintErr) throw new Error(`Gagal membaca aduan: ${complaintErr.message}`);
+
+  let seedUpdated = 0;
+  let nonSeedUpdated = 0;
+  for (const c of complaints ?? []) {
+    if (!c.region_id) continue;
+    let next: { lat: number; lng: number } | null = null;
+    if (c.is_seed) {
+      next = seedComplaintCoordinate(c.id, c.region_id);
+    } else if (c.lat !== null && c.lng !== null) {
+      const delta = regionDelta.get(c.region_id);
+      if (delta) next = { lat: c.lat + delta.dLat, lng: c.lng + delta.dLng };
+    }
+    if (!next || !changed(c.lat, c.lng, next.lat, next.lng)) continue;
+
+    const { error } = await supabase.from("complaints").update({ lat: next.lat, lng: next.lng }).eq("id", c.id);
+    if (error) throw new Error(`Gagal update koordinat aduan ${c.id}: ${error.message}`);
+    if (c.is_seed) seedUpdated++;
+    else nonSeedUpdated++;
+  }
+  console.log(`📍 aduan diperbarui: ${seedUpdated} seed, ${nonSeedUpdated} non-seed\n`);
+
+  // ---------------------------------------------------------------------
+  // 4. Clustering ulang
   // ---------------------------------------------------------------------
   console.log("🔁 Menjalankan clustering ulang untuk seluruh aduan...\n");
   const result = await recomputeAllClusters();

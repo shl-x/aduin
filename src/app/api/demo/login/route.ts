@@ -19,6 +19,7 @@ const DEMO_ACCOUNT_EMAILS: Record<string, string> = {
   operator: "operator@demo.aduin",
   pu: "pu@demo.aduin",
   dinkes: "dinkes@demo.aduin",
+  bpkad: "bpkad@demo.aduin",
   pimpinan: "pimpinan@demo.aduin",
 };
 

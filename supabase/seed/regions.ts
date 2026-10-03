@@ -14,7 +14,7 @@
 
 import { createClient } from "../../src/lib/supabase/client";
 import { sid } from "./uuid";
-import { KECAMATAN_CENTERS, desaCoordinate } from "./geo";
+import { KECAMATAN_CENTERS, resolveDesaCoordinate } from "./geo";
 
 export interface RegionRow {
   id: string;
@@ -26,16 +26,13 @@ export interface RegionRow {
 }
 
 /**
- * Koordinat pusat kecamatan (KECAMATAN_CENTERS, lihat geo.ts) diambil dari
- * Wikipedia bahasa Indonesia per kecamatan — koordinat sebelumnya (versi awal
- * seed ini) keliru menempatkan semuanya di sekitar Kota Probolinggo, padahal
- * kelima kecamatan ini ada di Kabupaten Probolinggo (wilayah administratif
- * berbeda, mengelilingi kota). Koordinat desa dihitung `desaCoordinate()` —
- * deterministik, 1–3 km dari pusat kecamatannya.
+ * Koordinat pusat kecamatan: KECAMATAN_CENTERS (geo.ts). Koordinat desa:
+ * resolveDesaCoordinate() — koordinat asli untuk desa yang ada di
+ * DESA_FIXED_COORDS (Bantaran, Karanganyar, Legundi), selain itu
+ * deterministik 1–3 km dari pusat kecamatannya.
  */
 function desa(name: string, kecamatanName: string, parentId: string): RegionRow {
-  const center = KECAMATAN_CENTERS[kecamatanName];
-  const { lat, lng } = desaCoordinate(kecamatanName, name, center);
+  const { lat, lng } = resolveDesaCoordinate(kecamatanName, name);
   return {
     id: sid(`r-des-${name.toLowerCase().replace(/\s+/g, "-")}`),
     name,

@@ -222,7 +222,11 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
         <div className="flex flex-wrap items-center gap-2">
           <Select value={regionId} onValueChange={(v) => setRegionId(v ?? undefined)}>
             <SelectTrigger className="w-full sm:w-64">
-              <SelectValue placeholder="Pilih desa/kecamatan (opsional)" />
+              <SelectValue>
+                {(v: string | null) =>
+                  regions.find((r) => r.id === v)?.label ?? "Pilih desa/kecamatan (opsional)"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {regions.map((r) => (

@@ -6,6 +6,7 @@
  * terkait. Operator: "Periksa Sekarang", "Coba Lagi" (pending_retry), dan
  * "Tutup Alert" (catatan wajib).
  */
+import type { Metadata } from "next";
 import { Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,8 @@ import { CheckNowButton } from "@/components/alert-actions";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionRole } from "@/lib/supabase/server";
 import { getActiveAlerts, type ActiveAlert } from "@/lib/analytics/early-warning";
+
+export const metadata: Metadata = { title: "Peringatan Dini" };
 
 export default async function AlertPage() {
   const role = await getSessionRole();

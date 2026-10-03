@@ -1,15 +1,10 @@
 /**
  * supabase/seed/refresh-demo-timeline.ts
  *
- * Menyegarkan timeline data seed agar skenario demo selalu "sedang terjadi":
- *
- *   1. Cari aduan seed diare Sumberasih yang PALING BARU (label_manual =
- *      kesehatan_diare, wilayah bernama "Sumberasih" — kecamatan maupun desa).
- *   2. Hitung selisih agar aduan itu berada ±2 jam sebelum sekarang.
- *   3. Geser reported_at, closed_at, dan semua timestamp terkait data seed
- *      dengan selisih yang SAMA lewat fungsi Postgres shift_seed_timeline
- *      (satu transaksi — pola relatif antar-aduan tidak berubah).
- *   4. Jalankan early warning untuk semua kombinasi dan cetak hasilnya.
+ * CLI untuk refreshDemoTimeline() (src/lib/demo/refresh-timeline.ts):
+ * geser timeline data seed agar aduan diare Sumberasih terbaru berada ±2 jam
+ * sebelum sekarang, lalu jalankan early warning untuk semua kombinasi dan
+ * cetak alert yang terbentuk.
  *
  * Aman dijalankan berulang kali (termasuk di hari demo): selisih dihitung
  * ulang setiap kali, sehingga run kedua menghasilkan selisih ≈ 0 dan
@@ -24,13 +19,8 @@
  */
 
 import { createClient } from "../../src/lib/supabase/client";
-import { checkAllEarlyWarnings, getActiveAlerts, categoryLabel } from "../../src/lib/analytics/early-warning";
-
-const ANCHOR_CATEGORY = "kesehatan_diare";
-const ANCHOR_REGION_NAME = "Sumberasih";
-const TARGET_HOURS_AGO = 2;
-/** Selisih di bawah ini dianggap sudah segar — tidak perlu digeser. */
-const MIN_SHIFT_SECONDS = 60;
+import { categoryLabel } from "../../src/lib/analytics/early-warning";
+import { refreshDemoTimeline, TARGET_HOURS_AGO, type RefreshTimelineReport } from "../../src/lib/demo/refresh-timeline";
 
 function formatDuration(seconds: number): string {
   const sign = seconds < 0 ? "-" : "+";
@@ -41,79 +31,40 @@ function formatDuration(seconds: number): string {
   return `${sign}${d} hari ${h} jam ${m} menit`;
 }
 
-async function main(): Promise<void> {
-  const supabase = createClient();
-  const now = new Date();
-
-  const { data: regions, error: regionErr } = await supabase
-    .from("regions")
-    .select("id")
-    .eq("name", ANCHOR_REGION_NAME);
-  if (regionErr) throw new Error(`Gagal membaca wilayah: ${regionErr.message}`);
-  const regionIds = (regions ?? []).map((r) => r.id);
-  if (regionIds.length === 0) throw new Error(`Wilayah "${ANCHOR_REGION_NAME}" tidak ditemukan. Jalankan seed dulu.`);
-
-  const { data: anchor, error: anchorErr } = await supabase
-    .from("complaints")
-    .select("id, reported_at")
-    .eq("is_seed", true)
-    .eq("label_manual", ANCHOR_CATEGORY)
-    .in("region_id", regionIds)
-    .order("reported_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (anchorErr) throw new Error(`Gagal membaca aduan jangkar: ${anchorErr.message}`);
-  if (!anchor) throw new Error("Aduan seed diare Sumberasih tidak ditemukan. Jalankan seed dulu.");
-
-  const target = now.getTime() - TARGET_HOURS_AGO * 60 * 60 * 1000;
-  const deltaSeconds = Math.round((target - new Date(anchor.reported_at).getTime()) / 1000);
-
-  console.log(`🕒 Sekarang            : ${now.toISOString()}`);
-  console.log(`   Diare terbaru (seed): ${anchor.reported_at}`);
-  console.log(`   Target              : ${new Date(target).toISOString()} (${TARGET_HOURS_AGO} jam lalu)`);
-
-  if (Math.abs(deltaSeconds) < MIN_SHIFT_SECONDS) {
+function printRefreshReport(report: RefreshTimelineReport): void {
+  console.log(`🕒 Sekarang            : ${report.now}`);
+  console.log(`   Diare terbaru (seed): ${report.anchorReportedAt}`);
+  console.log(`   Target              : ${report.target} (${TARGET_HOURS_AGO} jam lalu)`);
+  if (report.deltaSeconds === 0) {
     console.log("✅ Timeline sudah segar — tidak ada yang digeser.\n");
   } else {
-    console.log(`   Selisih             : ${formatDuration(deltaSeconds)}`);
-    const { data: shifted, error: shiftErr } = await supabase.rpc("shift_seed_timeline", {
-      p_delta: `${deltaSeconds} seconds`,
-    });
-    if (shiftErr) {
-      const hint =
-        shiftErr.code === "PGRST202" ? " Terapkan migrasi supabase/migrations/0004_early_warning.sql." : "";
-      throw new Error(`Gagal menggeser timeline: ${shiftErr.message}.${hint}`);
-    }
-    console.log(`✅ ${shifted} aduan seed (beserta data terkait) digeser.\n`);
+    console.log(`   Selisih             : ${formatDuration(report.deltaSeconds)}`);
+    console.log(`✅ ${report.shiftedComplaints} aduan seed (beserta data terkait) digeser.\n`);
   }
 
-  console.log("🔎 Menjalankan early warning untuk semua kombinasi…");
-  const outcomes = await checkAllEarlyWarnings(supabase, new Date());
-  const triggered = outcomes.filter((o) => o.action !== "below_threshold");
-  console.log(`   ${outcomes.length} kombinasi diperiksa, ${triggered.length} melewati ambang.`);
+  const triggered = report.outcomes.filter((o) => o.action !== "below_threshold");
+  console.log("🔎 Early warning untuk semua kombinasi:");
+  console.log(`   ${report.outcomes.length} kombinasi diperiksa, ${triggered.length} melewati ambang.`);
   for (const o of triggered) {
-    const label = {
-      created: "BARU",
-      updated: "DIPERBARUI",
-      below_threshold: "",
-    }[o.action];
+    const label = o.action === "created" ? "BARU" : "DIPERBARUI";
     console.log(
       `   • [${label}] ${categoryLabel(o.category)} — count_24h=${o.count_24h}, mean_14d=${o.mean_14d}, std=${o.std_14d}, z=${o.z_score}` +
         (o.summary_status ? `, ringkasan=${o.summary_status}` : "")
     );
   }
 
-  const active = await getActiveAlerts(supabase);
-  console.log(`\n🚨 Alert aktif (${active.length}):`);
-  for (const a of active) {
+  console.log(`\n🚨 Alert aktif (${report.activeAlerts.length}):`);
+  for (const a of report.activeAlerts) {
     console.log(
       `   • ${a.category_label} — ${a.region_name ?? "?"}: ${a.count_24h} aduan/24 jam vs ${a.mean_14d}/hari, z=${a.z_score}, ringkasan=${a.summary_status}`
     );
   }
-  if (active.length === 0) console.log("   (tidak ada)");
+  if (report.activeAlerts.length === 0) console.log("   (tidak ada)");
 }
 
-main().catch((err) => {
-  console.error("\n❌ refresh-demo-timeline gagal:", err instanceof Error ? err.message : err);
-  process.exitCode = 1;
-});
+refreshDemoTimeline(createClient())
+  .then(printRefreshReport)
+  .catch((err) => {
+    console.error("\n❌ refresh-demo-timeline gagal:", err instanceof Error ? err.message : err);
+    process.exitCode = 1;
+  });

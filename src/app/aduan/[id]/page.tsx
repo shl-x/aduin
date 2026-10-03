@@ -12,6 +12,7 @@
  * foto sebelum/sesudah, hasil AI, tinjauan operator, unggah bukti petugas),
  * riwayat override, dan form override (khusus operator).
  */
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,8 @@ import { getCoordinationPlan, type CoordinationPlanView } from "@/lib/services/c
 import { getVerificationHistory, type VerificationHistory } from "@/lib/services/verification";
 import { CATEGORIES } from "@/lib/constants/categories";
 import { STATUS_LABELS, STATUS_BADGE_VARIANT, type ComplaintStatus } from "@/lib/constants/status";
+
+export const metadata: Metadata = { title: "Detail Aduan" };
 
 const HANDLING_PATH_LABELS: Record<string, string> = {
   quick_fix: "Quick Fix",

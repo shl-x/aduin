@@ -57,15 +57,51 @@ export function desaCoordinate(kecamatanName: string, desaName: string, kecamata
 }
 
 /**
- * Koordinat pusat kecamatan (kantor kecamatan), diambil dari Wikipedia
- * bahasa Indonesia per kecamatan. Ini SATU-SATUNYA sumber kebenaran untuk
- * lokasi kecamatan — regions.ts dan fix-coordinates.ts sama-sama
- * mengimpornya dari sini.
+ * Koordinat pusat kecamatan (lat, lng) — SATU-SATUNYA sumber kebenaran
+ * lokasi kecamatan. regions.ts, complaints.ts, dan fix-coordinates.ts
+ * sama-sama mengimpornya dari sini.
  */
 export const KECAMATAN_CENTERS: Record<string, LatLng> = {
-  Bantaran: { lat: -7.866, lng: 113.1786 },
-  Sumberasih: { lat: -7.7824, lng: 113.1669 },
-  Dringu: { lat: -7.7872, lng: 113.255 },
-  Wonomerto: { lat: -7.8316, lng: 113.1487 },
-  Leces: { lat: -7.8344, lng: 113.2279 },
+  Bantaran: { lat: -7.8736, lng: 113.1858 },
+  Sumberasih: { lat: -7.7643, lng: 113.1501 },
+  Dringu: { lat: -7.7885, lng: 113.2573 },
+  Wonomerto: { lat: -7.8399, lng: 113.1561 },
+  Leces: { lat: -7.8513, lng: 113.2216 },
 };
+
+/**
+ * Desa dengan koordinat asli (bukan hasil desaCoordinate()). Kunci:
+ * `${kecamatan}:${desa}`. Desa lain diletakkan 1–3 km dari pusat
+ * kecamatannya secara deterministik.
+ */
+export const DESA_FIXED_COORDS: Record<string, LatLng> = {
+  "Bantaran:Bantaran": { lat: -7.8717, lng: 113.1836 },
+  "Bantaran:Karanganyar": { lat: -7.8776, lng: 113.1714 },
+  "Bantaran:Legundi": { lat: -7.8643, lng: 113.1658 },
+};
+
+/** Koordinat final sebuah desa: koordinat asli jika ada, selain itu 1–3 km dari pusat kecamatan. */
+export function resolveDesaCoordinate(kecamatanName: string, desaName: string): LatLng {
+  const fixed = DESA_FIXED_COORDS[`${kecamatanName}:${desaName}`];
+  if (fixed) return fixed;
+  const center = KECAMATAN_CENTERS[kecamatanName];
+  if (!center) throw new Error(`Kecamatan tidak dikenal di KECAMATAN_CENTERS: ${kecamatanName}`);
+  return desaCoordinate(kecamatanName, desaName, center);
+}
+
+/**
+ * Posisi sebuah aduan di sekitar titik jangkarnya (desa), deterministik
+ * berdasarkan id aduan — input sama selalu menghasilkan titik yang sama,
+ * sehingga seed baru dan fix-coordinates.ts menghasilkan koordinat identik.
+ *
+ * - Aduan biasa: 150–800 m dari desanya.
+ * - Anggota cluster jalan rusak Bantaran: 30–200 m dari Desa Bantaran,
+ *   sehingga jarak antar-anggota ≤ 400 m (di bawah CLUSTER_RADIUS_METERS 500 m).
+ */
+export function complaintCoordinate(complaintId: string, anchor: LatLng, tight: boolean): LatLng {
+  const h = hashString(`aduan:${complaintId}`);
+  const bearingDeg = h % 360;
+  const [minM, maxM] = tight ? [30, 200] : [150, 800];
+  const distanceMeters = minM + (Math.floor(h / 360) % (maxM - minM + 1));
+  return destinationPoint(anchor, bearingDeg, distanceMeters);
+}

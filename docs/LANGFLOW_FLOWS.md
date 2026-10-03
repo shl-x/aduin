@@ -16,9 +16,7 @@
 
 | Peran | Model ID | Catatan |
 |-------|----------|---------|
-| LLM default (clarify, triage, opd-agent) | `ibm/granite-4-h-small` | Cek ketersediaan di akun |
-| LLM aduin-alert-summary | `mistralai/mistral-small-3-1-24b-instruct-2503` | Sesuai flow yang diekspor (region Tokyo) |
-| Alternatif LLM (jika `granite-4-h-small` tidak tersedia) | `ibm/granite-3-3-8b-instruct` | Fallback manual |
+| LLM (clarify, triage, opd-agent, alert-summary) | `mistralai/mistral-small-3-1-24b-instruct-2503` | Komponen IBM watsonx.ai, region Tokyo (`https://jp-tok.ml.cloud.ibm.com`) |
 | Vision (aduin-verify) | `mistralai/mistral-small-3-1-24b-instruct-2503` | Analisis foto; dipanggil dari custom component lewat `ibm_watsonx_ai` (region Tokyo) |
 | Embedding (aduin-embed) | `ibm/granite-embedding-278m-multilingual` | 768 dimensi |
 
@@ -190,10 +188,10 @@ Prompt
     │  Variabel: {input_json}   ← disambung dari Chat Input
     ▼
 IBM watsonx.ai (LLM)
-    │  Model: ibm/granite-4-h-small
-    │  (alt: ibm/granite-3-3-8b-instruct)
-    │  Temperature: 0.0
-    │  Max tokens: 200
+    │  Model: mistralai/mistral-small-3-1-24b-instruct-2503
+    │  Endpoint: https://jp-tok.ml.cloud.ibm.com
+    │  Temperature: 0.1
+    │  Max tokens: 1000
     ▼
 Chat Output
 ```
@@ -331,10 +329,10 @@ Prompt
     │  (prompt menyertakan daftar lengkap slug + OPD)
     ▼
 IBM watsonx.ai (LLM)
-    │  Model: ibm/granite-4-h-small
-    │  (alt: ibm/granite-3-3-8b-instruct)
+    │  Model: mistralai/mistral-small-3-1-24b-instruct-2503
+    │  Endpoint: https://jp-tok.ml.cloud.ibm.com
     │  Temperature: 0.0
-    │  Max tokens: 300
+    │  Max tokens: 400
     ▼
 Chat Output
 ```
@@ -382,7 +380,7 @@ Menghasilkan vektor embedding 768 dimensi untuk teks aduan menggunakan model `ib
 
 Dipanggil dari: `POST /api/triage/[id]` — setelah triage berhasil, sebelum clustering.
 
-> **Catatan model:** `ibm/granite-embedding-278m-multilingual` tidak memakai konvensi awalan `"query: "`/`"passage: "` seperti model keluarga e5 (`multilingual-e5-large`). Teks dikirim apa adanya ke `embed_query()` tanpa prefiks tambahan.
+> **Catatan model:** `ibm/granite-embedding-278m-multilingual` tidak memerlukan awalan `"query: "`/`"passage: "`. Teks dikirim apa adanya ke `embed_query()` tanpa prefiks tambahan.
 
 ### Format Input
 
@@ -747,7 +745,7 @@ Prompt Template
     │  Variabel: {input_json}   ← disambung dari Chat Input
     ▼
 IBM watsonx.ai
-    │  Model: ibm/granite-4-h-small
+    │  Model: mistralai/mistral-small-3-1-24b-instruct-2503
     │  Endpoint: https://jp-tok.ml.cloud.ibm.com
     │  Temperature: 0.1
     │  Max tokens: 800

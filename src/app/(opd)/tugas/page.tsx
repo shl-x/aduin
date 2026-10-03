@@ -10,6 +10,7 @@
  * di tahap penyelesaian. Tombol "Unggah Bukti Penyelesaian" hanya aktif jika
  * SEMUA tugas aduan (lintas OPD) sudah selesai.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ClipboardList, Clock, ExternalLink, MessageSquareWarning } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,8 @@ import {
   type TaskStatus,
 } from "@/lib/constants/tasks";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = { title: "Tugas Saya" };
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (

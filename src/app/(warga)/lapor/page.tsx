@@ -6,12 +6,15 @@
  * M5: di bawah chat, warga melihat "Aduan Saya" beserta statusnya; aduan
  * berstatus ai_verified menunggu konfirmasi / penolakan warga.
  */
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionProfile } from "@/lib/supabase/server";
 import { LaporChat } from "@/components/lapor-chat";
 import { AduanSaya, type MyComplaint } from "@/components/aduan-saya";
 import { CATEGORIES } from "@/lib/constants/categories";
 import { getVerificationHistory } from "@/lib/services/verification";
+
+export const metadata: Metadata = { title: "Laporkan Aduan" };
 
 async function loadMyComplaints(
   supabase: ReturnType<typeof createClient>,

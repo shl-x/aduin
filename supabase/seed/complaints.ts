@@ -12,6 +12,11 @@
  *
  * Semua timestamp dibuat relatif terhadap NOW() saat seed dijalankan.
  *
+ * Koordinat: nilai lat/lng yang ditulis per aduan di bawah hanya placeholder
+ * historis — buildComplaints() menimpanya dengan seedComplaintCoordinate()
+ * (placement.ts): diacak deterministik 150–800 m di sekitar desanya, dan
+ * cluster jalan rusak Bantaran 30–200 m dari Desa Bantaran.
+ *
  * Catatan: effective_category dan effective_opd_id hanya diisi untuk status
  * triaged ke atas (tanpa hasil AI nyata — ini placeholder untuk demo).
  * Script precompute-ai.ts (M7) akan mengisi nilai yang benar dari Langflow.
@@ -22,6 +27,7 @@ import { REGIONS } from "./regions";
 import { OPD_ID_BY_SHORT } from "./opd";
 import { DEMO_ACCOUNT_IDS } from "./accounts";
 import { sid } from "./uuid";
+import { seedComplaintCoordinate } from "./placement";
 import type { CategorySlug } from "../../src/lib/constants/categories";
 
 // ---------------------------------------------------------------------------
@@ -165,7 +171,7 @@ export function buildComplaints(): ComplaintSeed[] {
       ][i],
       status: "triaged",
       region_id: regionId("Sumberasih"),
-      lat: -7.7623 + (i * 0.0002),
+      lat: -7.7623 + (i * 0.0002), // ditimpa seedComplaintCoordinate()
       lng: 113.1812 + (i * 0.0003),
       reported_at: hoursAgo(spikeHours[i]),
       label_manual: "kesehatan_diare",
@@ -294,7 +300,10 @@ export function buildComplaints(): ComplaintSeed[] {
   add({ id: sid("c-lcs-024"), text: "Banjir Warujinggo menenggelamkan sawah warga, butuh normalisasi sungai.", status: "in_progress", region_id: regionId("Warujinggo"), lat: -7.7866, lng: 113.2061, reported_at: daysAgo(9), label_manual: "banjir_drainase", is_seed: true, effective_category: "banjir_drainase", effective_opd_id: OPD_ID_BY_SHORT["DPU"], reporter_id: wargaId });
   add({ id: sid("c-lcs-025"), text: "Siswa SDN Leces 2 belum mendapat buku teks kurikulum baru.", status: "closed", region_id: regionId("Leces"), lat: -7.7812, lng: 113.1984, reported_at: daysAgo(18), closed_at: daysAgo(6), label_manual: "pendidikan", is_seed: true, effective_category: "pendidikan", effective_opd_id: OPD_ID_BY_SHORT["Disdik"], reporter_id: wargaId });
 
-  return rows;
+  return rows.map((row) => {
+    const coord = seedComplaintCoordinate(row.id, row.region_id);
+    return coord ? { ...row, lat: coord.lat, lng: coord.lng } : row;
+  });
 }
 
 export async function seedComplaints(): Promise<number> {

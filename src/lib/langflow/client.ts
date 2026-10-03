@@ -48,6 +48,15 @@ export class LangflowParseError extends Error {
   }
 }
 
+export interface RunFlowOptions {
+  /**
+   * false → lewati ai_cache sepenuhnya (tidak membaca, tidak menulis).
+   * Dipakai evaluasi held-out (supabase/seed/eval-triage.ts) agar setiap
+   * aduan benar-benar dinilai oleh model dan tidak ada yang ditulis ke DB.
+   */
+  cache?: boolean;
+}
+
 /**
  * Menjalankan flow Langflow dengan cache, parsing tahan banting, dan
  * validasi Zod. Melempar error jika gagal di tahap manapun — pemanggil
@@ -58,14 +67,18 @@ export async function runFlow<T>(
   flowName: FlowName,
   inputValue: unknown,
   schema: ZodType<T>,
-  timeoutMs: number = DEFAULT_TIMEOUT_MS
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  options: RunFlowOptions = {}
 ): Promise<T> {
+  const useCache = options.cache !== false;
   const serializedInput = JSON.stringify(inputValue);
   const inputHash = hashInput(serializedInput);
   const cacheKey = LANGFLOW_FLOW_LABELS[flowName];
 
-  const cached = await getCachedResult(cacheKey, inputHash, schema);
-  if (cached) return cached;
+  if (useCache) {
+    const cached = await getCachedResult(cacheKey, inputHash, schema);
+    if (cached) return cached;
+  }
 
   const rawText = await callLangflow(flowName, serializedInput, timeoutMs);
   if (rawText === null) {
@@ -84,7 +97,7 @@ export async function runFlow<T>(
     );
   }
 
-  await cacheResult(cacheKey, inputHash, validated.data);
+  if (useCache) await cacheResult(cacheKey, inputHash, validated.data);
   return validated.data;
 }
 
@@ -109,13 +122,16 @@ export async function runClarify(input: {
  * @returns hasil typed, atau `null` jika Langflow gagal / output invalid
  *          (pemanggil harus set complaints.status = 'triage_failed').
  */
-export async function runTriage(input: {
-  complaint_text: string;
-  region_name: string;
-  photo_url: string | null;
-}): Promise<TriageOutput | null> {
+export async function runTriage(
+  input: {
+    complaint_text: string;
+    region_name: string;
+    photo_url: string | null;
+  },
+  options: RunFlowOptions = {}
+): Promise<TriageOutput | null> {
   try {
-    return await runFlow("triage", input, triageOutputSchema);
+    return await runFlow("triage", input, triageOutputSchema, DEFAULT_TIMEOUT_MS, options);
   } catch (err) {
     console.error("[Langflow] aduin-triage gagal:", err instanceof Error ? err.message : err);
     return null;

@@ -243,12 +243,12 @@ Vektor embedding teks aduan (pgvector).
 | `id` | `uuid` PK | — |
 | `complaint_id` | `uuid` NOT NULL FK → `complaints.id` UNIQUE | — |
 | `embedding` | `vector($EMBEDDING_DIMENSION)` | Output `aduin-embed` flow; dimensi mengikuti env `EMBEDDING_DIMENSION` |
-| `model_version` | `text NOT NULL` | Versi model embedding (contoh: `multilingual-e5-large`) |
+| `model_version` | `text NOT NULL` | Versi model embedding (`ibm/granite-embedding-278m-multilingual`) |
 | `created_at` | `timestamptz DEFAULT now()` | — |
 
 **Index:** `(complaint_id)`, ivfflat/hnsw index pada `embedding vector_cosine_ops`
 
-> **Rekomendasi model:** Gunakan model embedding **multilingual** (contoh: `intfloat/multilingual-e5-large` dimensi 1024, atau `paraphrase-multilingual-mpnet-base-v2` dimensi 768) karena teks aduan warga mengandung campuran Bahasa Indonesia dan bahasa daerah (Jawa/Madura). Model embedding monolingual Bahasa Inggris tidak memadai untuk konteks ini. Dimensi model yang dipilih harus dicatat di `EMBEDDING_DIMENSION` dan konsisten di seluruh migrasi DB dan script seed.
+> **Model:** `ibm/granite-embedding-278m-multilingual` (768 dimensi) — model **multilingual**, karena teks aduan warga mengandung campuran Bahasa Indonesia dan bahasa daerah (Jawa/Madura). Dimensi dicatat di `EMBEDDING_DIMENSION` dan harus konsisten dengan kolom `vector(768)`, `embedOutputSchema`, dan script seed.
 
 ---
 
@@ -761,8 +761,8 @@ LANGFLOW_FLOW_VERIFY_ID=<uuid>
 LANGFLOW_FLOW_ALERT_SUMMARY_ID=<uuid>
 
 # Embedding
-EMBEDDING_DIMENSION=1024
-# Rekomendasi: multilingual-e5-large (1024) atau paraphrase-multilingual-mpnet-base-v2 (768)
+EMBEDDING_DIMENSION=768
+# Model: ibm/granite-embedding-278m-multilingual (768 dimensi)
 # Nilai ini harus konsisten dengan model yang dikonfigurasi di flow aduin-embed di Langflow.
 # Jika model diganti, jalankan migrasi DB untuk mengubah dimensi kolom vector() dan re-embed semua aduan.
 

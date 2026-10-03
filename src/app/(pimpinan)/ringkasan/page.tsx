@@ -5,6 +5,7 @@
  * ?days=), sebaran per kecamatan, alert aktif, dan peringkat kinerja OPD.
  * Semua data dari database (src/lib/analytics/*) — tidak memanggil Langflow.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { BarChart3, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,8 @@ import {
 } from "@/lib/analytics/dashboard";
 import { getActiveAlerts, type ActiveAlert } from "@/lib/analytics/early-warning";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = { title: "Ringkasan Kinerja" };
 
 function formatHours(hours: number | null): string {
   if (hours === null) return "—";

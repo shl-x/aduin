@@ -44,13 +44,10 @@ const HANDLING_PATH_OPTIONS = [
 ];
 
 /**
- * Base UI Select.Value hanya bisa menampilkan label item yang sudah
- * "terdaftar" — normalnya baru terdaftar setelah popup pernah dibuka sekali
- * (Select.Item hidup di dalam Portal yang lazy-mount). Tanpa `items` di
- * bawah, nilai awal ("__all__") tampil sebagai teks mentahnya sendiri alih-
- * alih label "Semua kategori"/"Semua jalur". Meneruskan `items` ke
- * Select.Root membuat Select.Value bisa resolve label langsung, tanpa
- * bergantung pada popup pernah dibuka.
+ * Peta nilai → label untuk Select. Base UI Select.Value tidak selalu bisa
+ * me-resolve label sebelum popup pernah dibuka (Select.Item hidup di Portal
+ * yang lazy-mount), sehingga nilai sentinel "__all__" sempat tampil mentah.
+ * Label kini dirender eksplisit lewat children-function Select.Value.
  */
 const CATEGORY_SELECT_ITEMS: Record<string, string> = {
   [ALL]: "Semua kategori",
@@ -103,7 +100,7 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
         <div className="flex flex-wrap items-center gap-2">
           <Select items={CATEGORY_SELECT_ITEMS} value={category} onValueChange={(v) => setCategory(v ?? ALL)}>
             <SelectTrigger className="w-56">
-              <SelectValue placeholder="Semua kategori" />
+              <SelectValue>{(v: string | null) => CATEGORY_SELECT_ITEMS[v ?? ALL] ?? "Semua kategori"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>Semua kategori</SelectItem>
@@ -121,7 +118,7 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
             onValueChange={(v) => setHandlingPath(v ?? ALL)}
           >
             <SelectTrigger className="w-44">
-              <SelectValue placeholder="Semua jalur" />
+              <SelectValue>{(v: string | null) => HANDLING_PATH_SELECT_ITEMS[v ?? ALL] ?? "Semua jalur"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>Semua jalur</SelectItem>

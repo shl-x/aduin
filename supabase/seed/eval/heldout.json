@@ -1,0 +1,41 @@
+{
+  "description": "Set evaluasi held-out aduin-triage: 30 aduan BARU (tidak ada di supabase/seed/complaints.ts). Bahasa: id-informal, jawa, madura. Kasus ambigu ditandai ambiguous=true; labelnya adalah kategori yang paling tepat menurut penanganan utama.",
+  "items": [
+    { "id": "h01", "lang": "id-informal", "region_name": "Bantaran", "label": "infrastruktur_jalan", "text": "min jalan dkt pertigaan masjid bantaran ancur bgt, lubangnya segede ember, td pagi ada ibu2 jatuh dr motor" },
+    { "id": "h02", "lang": "jawa", "region_name": "Leces", "label": "infrastruktur_jalan", "text": "Dalan neng ngarep pasar Leces bolong-bolong, yen udan dadi blumbang, sepedah motor akeh sing kepleset." },
+    { "id": "h03", "lang": "madura", "region_name": "Dringu", "label": "infrastruktur_jalan", "text": "Jalan e Dringu rosak parah, bannya ban motor bannyak se pecah, tolong eperbaiki." },
+    { "id": "h04", "lang": "id-informal", "region_name": "Wonomerto", "label": "infrastruktur_jalan", "text": "Jembatan bambu penghubung dusun di Wonomerto udah miring, anak sekolah tiap hari lewat situ, ngeri pak" },
+
+    { "id": "h05", "lang": "id-informal", "region_name": "Sumberasih", "label": "kesehatan_diare", "text": "anak sy sm 2 ponakan muntaber dr semalem, tetangga jg ada yg sama, takut ada wabah" },
+    { "id": "h06", "lang": "jawa", "region_name": "Dringu", "label": "kesehatan_diare", "text": "Wis telung dina warga RT 4 akeh sing mencret lan panas, puskesmas kebak, nyuwun dicek saka dinas kesehatan." },
+    { "id": "h07", "lang": "madura", "region_name": "Leces", "label": "kesehatan_diare", "text": "Bannyak oreng e kampong sakek mencret, ana' kene' bede se ka rumah sakek, tolong dateng dinkes." },
+    { "id": "h08", "lang": "id-informal", "region_name": "Bantaran", "label": "kesehatan_diare", "text": "Banyak nyamuk, 3 warga gang kami kena DB minggu ini, minta fogging segera", "ambiguous": true, "note": "Bukan diare, tetapi masuk Kesehatan & Sanitasi (Dinkes)." },
+
+    { "id": "h09", "lang": "id-informal", "region_name": "Leces", "label": "pengelolaan_sampah", "text": "TPS samping balai desa udh numpuk seminggu, bau bgt sampe ke rumah2, lalat dmn2" },
+    { "id": "h10", "lang": "jawa", "region_name": "Wonomerto", "label": "pengelolaan_sampah", "text": "Uwong-uwong mbuwang sampah neng pinggir kali, saiki dadi gunungan sampah lan mambu banget." },
+    { "id": "h11", "lang": "madura", "region_name": "Sumberasih", "label": "pengelolaan_sampah", "text": "Sampah e pasar ta' eangkot la saminggu, baunah ngeng-ngeng, tolong DLH." },
+    { "id": "h12", "lang": "id-informal", "region_name": "Dringu", "label": "pengelolaan_sampah", "text": "Ada yg bakar sampah plastik tiap sore di lahan kosong, asapnya masuk rumah, anak sy batuk2" },
+
+    { "id": "h13", "lang": "id-informal", "region_name": "Dringu", "label": "banjir_drainase", "text": "Got depan rmh mampet total, ujan bntr aja air langsung naik ke teras" },
+    { "id": "h14", "lang": "jawa", "region_name": "Bantaran", "label": "banjir_drainase", "text": "Saben udan deres omah-omah neng RT 2 kebanjiran sedhengkul, selokane cilik lan buntu." },
+    { "id": "h15", "lang": "madura", "region_name": "Sumberasih", "label": "banjir_drainase", "text": "Banjir pole e kampong, aeng masok ka bengko, sengae pas got buntu kabbi." },
+    { "id": "h16", "lang": "id-informal", "region_name": "Leces", "label": "banjir_drainase", "text": "Got penuh sampah sampai airnya meluap ke jalan tiap hujan", "ambiguous": true, "note": "Ada unsur sampah, tetapi dampak utamanya genangan/drainase (DPU)." },
+
+    { "id": "h17", "lang": "id-informal", "region_name": "Bantaran", "label": "air_bersih_pdam", "text": "air pdam mati dr kemarin sore, udah lapor via telpon gak diangkat, mau mandi aja susah" },
+    { "id": "h18", "lang": "jawa", "region_name": "Dringu", "label": "air_bersih_pdam", "text": "Banyu PDAM metu cilik banget lan butheg, ora iso digawe masak." },
+    { "id": "h19", "lang": "madura", "region_name": "Wonomerto", "label": "air_bersih_pdam", "text": "Aeng PDAM ta' kalowar la tello are, oreng kampong ngala' aeng ka songai." },
+    { "id": "h20", "lang": "id-informal", "region_name": "Sumberasih", "label": "air_bersih_pdam", "text": "Pipa PDAM bocor di depan toko, air muncrat terus dari pagi, sayang airnya kebuang" },
+    { "id": "h21", "lang": "id-informal", "region_name": "Leces", "label": "air_bersih_pdam", "text": "air keran bau kaporit kuat banget dan agak kuning, belum ada yg sakit sih", "ambiguous": true, "note": "Kualitas air tanpa keluhan kesehatan → PDAM, bukan Dinkes." },
+
+    { "id": "h22", "lang": "id-informal", "region_name": "Wonomerto", "label": "pendidikan", "text": "plafon kelas 4 SDN di desa kami jebol, murid skrg belajar di teras" },
+    { "id": "h23", "lang": "jawa", "region_name": "Leces", "label": "pendidikan", "text": "Bocah-bocah SD durung entuk buku pelajaran, gurune ngongkon fotokopi dhewe." },
+    { "id": "h24", "lang": "madura", "region_name": "Bantaran", "label": "pendidikan", "text": "Sakola SD e dhisa kekorangan guru, kelas lema bik kelas enem ekompol dhaddi settong." },
+    { "id": "h25", "lang": "id-informal", "region_name": "Sumberasih", "label": "infrastruktur_jalan", "text": "Jalan masuk ke SMP becek dan rusak, siswa sering telat", "ambiguous": true, "note": "Menyebut sekolah, tetapi masalahnya jalan → infrastruktur_jalan." },
+
+    { "id": "h26", "lang": "id-informal", "region_name": "Leces", "label": "pkl_tata_ruang", "text": "pedagang kaki lima tiap sore buka lapak di trotoar alun2, pejalan kaki terpaksa jalan di aspal" },
+    { "id": "h27", "lang": "jawa", "region_name": "Dringu", "label": "pkl_tata_ruang", "text": "Bakul-bakul dodolan neng bahu dalan cedhak stasiun, nggawe macet saben esuk." },
+    { "id": "h28", "lang": "madura", "region_name": "Sumberasih", "label": "pkl_tata_ruang", "text": "Oreng ajuwal e pinggir jalan raya, parkerra sembarangan, mobil ta' bisa lebat." },
+    { "id": "h29", "lang": "id-informal", "region_name": "Wonomerto", "label": "pkl_tata_ruang", "text": "ada bangunan liar dibangun di atas saluran irigasi, makin hari makin banyak", "ambiguous": true, "note": "Pelanggaran tata ruang (Satpol), walau menyangkut saluran." },
+    { "id": "h30", "lang": "id-informal", "region_name": "Bantaran", "label": "pkl_tata_ruang", "text": "warung remang2 di pinggir jalan desa buka sampai subuh, berisik dan ganggu warga" }
+  ]
+}

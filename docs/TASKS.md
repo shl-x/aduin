@@ -84,14 +84,14 @@
 
 **Flow `aduin-clarify`:**
 - [ ] Buat flow baru bernama `aduin-clarify` di UI Langflow.
-- [ ] Susun komponen: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/clarify.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `ibm/granite-4-h-small`, temperature 0.0, max tokens 200) → **Chat Output**.
+- [ ] Susun komponen: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/clarify.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `mistralai/mistral-small-3-1-24b-instruct-2503`, temperature 0.1, max tokens 1000) → **Chat Output**.
 - [ ] Tes di Playground dengan test cases dari LANGFLOW_FLOWS.md §Flow 1 (TC-1 aduan lengkap, TC-2 tanpa lokasi, TC-3 terlalu singkat).
 - [ ] Setelah semua TC lulus, export flow sebagai JSON ke `langflow/flows/aduin-clarify.json`.
 - [ ] Catat Flow ID (UUID di URL Langflow) ke `.env.local` sebagai `LANGFLOW_FLOW_CLARIFY_ID`.
 
 **Flow `aduin-triage`:**
 - [ ] Buat flow baru bernama `aduin-triage` di UI Langflow.
-- [ ] Susun komponen: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/triage.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `ibm/granite-4-h-small`, temperature 0.0, max tokens 300) → **Chat Output**.
+- [ ] Susun komponen: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/triage.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `mistralai/mistral-small-3-1-24b-instruct-2503`, temperature 0.0, max tokens 400) → **Chat Output**.
 - [ ] Tes di Playground dengan 4 test cases dari LANGFLOW_FLOWS.md §Flow 2 (TC-1 jalan rusak, TC-2 diare, TC-3 sampah pasar, TC-4 aduan ambigu); verifikasi output sesuai skema JSON.
 - [ ] Verifikasi bahwa `opd_short_name` yang dihasilkan **tidak pernah** `BPKAD` untuk test cases di atas.
 - [ ] Setelah semua TC lulus, export flow ke `langflow/flows/aduin-triage.json`.
@@ -145,7 +145,7 @@
 
 ### Definition of Done
 
-- [ ] Setelah aduan baru masuk, cek tabel `complaint_embeddings` di Supabase → baris baru berisi array 1024 angka.
+- [ ] Setelah aduan baru masuk, cek tabel `complaint_embeddings` di Supabase → baris baru berisi vektor 768 angka.
 - [ ] Buka `/peta` → marker aduan muncul di koordinat yang benar; warna choropleth kecamatan berbeda berdasarkan volume aduan.
 - [ ] Data seed yang sudah ter-cluster (Bantaran) terlihat sebagai kumpulan marker berdekatan; klik salah satu marker menampilkan popup ringkasan.
 - [ ] `POST /api/cluster` berhasil dipanggil dari browser dev tools (Fetch) dan mengembalikan `{ "clusters": <n> }`.
@@ -159,7 +159,7 @@
 
 **Flow `aduin-opd-agent`:**
 - [ ] Buat flow baru bernama `aduin-opd-agent` di UI Langflow.
-- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 4: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/opd-agent.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `ibm/granite-4-h-small`, temperature 0.1, max tokens 800 — tanpa komponen Agent) → **Chat Output**.
+- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 4: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/opd-agent.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `mistralai/mistral-small-3-1-24b-instruct-2503`, temperature 0.1, max tokens 800 — tanpa komponen Agent) → **Chat Output**.
 - [ ] Tes di Playground dengan test cases dari LANGFLOW_FLOWS.md §Flow 4 (TC-1 jalan rusak sekolah multi-OPD, TC-2 diare single OPD, TC-3 banjir kompleks); verifikasi output memiliki `sequence` unik, `depends_on` valid, dan `opd_short_name` dari daftar yang berlaku (termasuk `BPKAD` untuk anggaran).
 - [ ] Setelah semua TC lulus, export flow ke `langflow/flows/aduin-opd-agent.json`.
 - [ ] Catat Flow ID ke `.env.local` sebagai `LANGFLOW_FLOW_OPD_AGENT_ID`.
@@ -225,7 +225,7 @@
 
 **Flow `aduin-alert-summary`:**
 - [ ] Buat flow baru bernama `aduin-alert-summary` di UI Langflow.
-- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 6: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/alert-summary.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `ibm/granite-4-h-small`, temperature 0.3, max tokens 400) → **Chat Output**.
+- [ ] Susun komponen sesuai LANGFLOW_FLOWS.md §Flow 6: **Chat Input** → **Prompt** (salin isi system prompt dari `langflow/prompts/alert-summary.md`, variabel `{input_json}`) → **IBM watsonx.ai** (model `mistralai/mistral-small-3-1-24b-instruct-2503`, temperature 0.3, max tokens 400) → **Chat Output**.
 - [ ] Tes di Playground dengan test cases dari LANGFLOW_FLOWS.md §Flow 6 (TC-1 lonjakan diare, TC-2 lonjakan jalan rusak, TC-3 lonjakan banjir lintas OPD).
 - [ ] Setelah semua TC lulus, export flow ke `langflow/flows/aduin-alert-summary.json`.
 - [ ] Catat Flow ID ke `.env.local` sebagai `LANGFLOW_FLOW_ALERT_SUMMARY_ID`.
@@ -265,15 +265,21 @@
 
 ### Kode (Bob)
 
-- [ ] Tulis `supabase/seed/precompute-ai.ts`: script yang membaca semua aduan seed, memanggil `runTriage()` + `runEmbed()` via `client.ts` (service role), dan menyimpan hasil ke `supabase/seed/ai-cache-snapshot.json` (hanya aduan yang lulus validasi Zod).
-- [ ] Perbarui `supabase/seed/index.ts`: baca `ai-cache-snapshot.json` dan insert ke tabel `ai_cache` saat seed.
-- [ ] Commit `ai-cache-snapshot.json` ke repo sehingga demo bisa berjalan offline dari cache.
-- [ ] Hitung akurasi triage: dari 150 aduan seed, bandingkan `triage_results.category` vs `label_manual`; cetak laporan persentase ke terminal; target ≥ 80%.
-- [ ] Verifikasi alert cadangan tersedia: cek tabel `alerts` memiliki setidaknya 1 baris dengan `summary_status = 'done'` yang di-seed langsung (fallback jika z-score tidak terpicu).
-- [ ] Polish UI: pastikan semua halaman memiliki loading state, empty state, dan error state yang informatif.
-- [ ] Buat `README.md` di root: setup lokal (klon, `npm install`, `.env.local`, Supabase setup, Langflow setup, seed, `npm run dev`), daftar akun demo, perintah reset seed.
-- [ ] Jalankan skenario demo end-to-end (Step 1–7 dari PRD.md §5) dan catat tiap step di checklist di bawah.
-- [ ] Pastikan `npm run build` dan `npm run lint` lulus final.
+- [x] Tulis `supabase/seed/precompute-ai.ts`: script yang membaca semua aduan seed, memanggil `runTriage()` + `runEmbed()` via `client.ts` (service role), dan menyimpan hasil ke `supabase/seed/ai-cache-snapshot.json` (hanya aduan yang lulus validasi Zod). *(Implementasi: mengekspor hasil AI yang sudah ada di database — triage_results, complaint_embeddings, ai_cache — tanpa memanggil Langflow ulang. Hasil: 141 triage, 150 embedding, 296 entri ai_cache.)*
+- [x] Perbarui `supabase/seed/index.ts`: baca `ai-cache-snapshot.json` dan insert ke tabel `ai_cache` saat seed. *(Lewat `supabase/seed/demo-state.ts`, dipakai bersama tombol Reset Demo; juga memulihkan triage_results, embedding, dan rencana sederhana.)*
+- [x] Commit `ai-cache-snapshot.json` ke repo sehingga demo bisa berjalan offline dari cache.
+- [x] Hitung akurasi triage: dari 150 aduan seed, bandingkan `triage_results.category` vs `label_manual`; cetak laporan persentase ke terminal; target ≥ 80%. *(Dicetak `precompute-ai.ts`: 141/141 = 100% — kemungkinan karena prompt sudah disetel pada data seed, jadi ukur juga dengan evaluasi held-out `eval-triage.ts`.)*
+- [ ] Verifikasi alert cadangan tersedia: cek tabel `alerts` memiliki setidaknya 1 baris dengan `summary_status = 'done'` yang di-seed langsung (fallback jika z-score tidak terpicu). *(Tidak dibuat sebagai baris seed. Sebagai gantinya Reset Demo/seed menjalankan deteksi early warning sehingga alert diare Sumberasih terbentuk dari data, dan ringkasannya diambil dari ai_cache snapshot tanpa Langflow bila inputnya sama.)*
+- [x] Polish UI: pastikan semua halaman memiliki loading state, empty state, dan error state yang informatif. *(error.tsx + not-found.tsx global berbahasa Indonesia, label dropdown, landing page, judul tab per halaman, favicon.)*
+- [x] Buat `README.md` di root: setup lokal (klon, `npm install`, `.env.local`, Supabase setup, Langflow setup, seed, `npm run dev`), daftar akun demo, perintah reset seed.
+- [ ] Jalankan skenario demo end-to-end (Step 1–7 dari PRD.md §5) dan catat tiap step di checklist di bawah. *(Belum — gladi manual mengikuti `docs/DEMO_SCRIPT.md`.)*
+- [x] Evaluasi held-out: `supabase/seed/eval/heldout.json` (30 aduan baru — Indonesia informal, Jawa, Madura; 7 kategori; 5 kasus ambigu) + `supabase/seed/eval-triage.ts` (aduin-triage tanpa cache, tanpa tulis DB; akurasi total, per kategori, per bahasa, daftar tidak cocok).
+- [x] Tombol **Reset Demo** di `/dashboard` (operator, hanya `NEXT_PUBLIC_DEMO_MODE=true`) → `POST /api/seed/reset` (kini wajib operator, tidak menghapus akun demo): pulihkan seed + hasil AI dari snapshot, hapus aduan latihan, geser timeline, jalankan early warning.
+- [x] Koordinat baru: pusat kecamatan dan desa Bantaran/Karanganyar/Legundi asli (`supabase/seed/geo.ts`), aduan diacak di sekitar desanya dan cluster jalan rusak Bantaran ≤ 200 m dari Desa Bantaran (`placement.ts`); `fix-coordinates.ts` memperbarui DB lama tanpa menghapus hasil AI lalu clustering ulang.
+- [x] Akun demo `bpkad@demo.aduin` (petugas BPKAD) agar tugas anggaran di rencana koordinasi Step 5 bisa diselesaikan di Step 6.
+- [x] `docs/DEMO_SCRIPT.md`: naskah Step 1–7 + checklist H-1 dan 1 jam sebelum demo.
+- [x] Rapikan label/model lama (PRD, ARCHITECTURE, LANGFLOW_FLOWS, TASKS, langflow/README, prompts/embed.md).
+- [x] Pastikan `npm run build` dan `npm run lint` lulus final.
 
 ### Definition of Done — Checklist Gladi Skenario Demo
 
@@ -284,6 +290,6 @@
 - [ ] **Step 5**: Dari detail aduan jalan rusak, klik "Buat Rencana Koordinasi" → sub-tugas muncul: Survei (DPU) → Anggaran (BPKAD) → Perbaikan (DPU).
 - [ ] **Step 6**: Login sebagai `pu@demo.aduin`, buka tugas, upload foto → status berubah ke `ai_verified`; login sebagai `warga@demo.aduin`, konfirmasi → status berubah ke `closed`.
 - [ ] **Step 7**: Login sebagai `pimpinan@demo.aduin`, buka `/ringkasan` → KPI ≥ 151 aduan, grafik tren, alert lonjakan diare, dan tabel kinerja OPD semuanya terisi.
-- [ ] `npm run build` selesai tanpa error.
-- [ ] `npm run lint` selesai tanpa warning.
-- [ ] Akurasi triage seed ≥ 80% (cetak dari skrip perbandingan).
+- [x] `npm run build` selesai tanpa error.
+- [x] `npm run lint` selesai tanpa warning.
+- [x] Akurasi triage seed ≥ 80% (cetak dari skrip perbandingan). *(precompute-ai.ts: 100%.)*

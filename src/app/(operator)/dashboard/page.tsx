@@ -4,6 +4,7 @@
  * langsung berdasarkan query string (?status=&category=&region=).
  * ?region= (UUID desa) dipakai tautan "Lihat aduan terkait" dari /alert.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { LayoutDashboard, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,9 +18,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardFilters } from "@/components/dashboard-filters";
+import { ResetDemoButton } from "@/components/reset-demo-button";
+import { getSessionRole } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/client";
 import { CATEGORIES } from "@/lib/constants/categories";
 import { STATUS_LABELS, STATUS_BADGE_VARIANT, type ComplaintStatus } from "@/lib/constants/status";
+
+export const metadata: Metadata = { title: "Daftar Aduan" };
 
 interface ComplaintRow {
   id: string;
@@ -44,6 +49,7 @@ export default async function DashboardPage({
 }) {
   const { status, category, region } = await searchParams;
   const supabase = createClient();
+  const role = await getSessionRole();
 
   let query = supabase
     .from("complaints")
@@ -69,11 +75,14 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Daftar Aduan</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Kelola dan pantau seluruh aduan yang masuk.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Daftar Aduan</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Kelola dan pantau seluruh aduan yang masuk.
+          </p>
+        </div>
+        {role === "operator" && <ResetDemoButton />}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

@@ -32,6 +32,7 @@ const DEMO_ROLES: DemoRoleConfig[] = [
   { key: "operator", label: "Operator", role: "operator" },
   { key: "pu",       label: "DPU",      role: "petugas_opd" },
   { key: "dinkes",   label: "Dinkes",   role: "petugas_opd" },
+  { key: "bpkad",    label: "BPKAD",    role: "petugas_opd" },
   { key: "pimpinan", label: "Pimpinan", role: "pimpinan" },
 ];
 
