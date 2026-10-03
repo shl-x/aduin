@@ -2,59 +2,190 @@
 
 > **Aduin aja, sisanya kami yang urus.**
 
-Aduin adalah "otak analitik" di balik kanal pengaduan masyarakat pemerintah daerah (studi kasus:
-Kabupaten Probolinggo). Warga cukup mengadu lewat chat; Aduin men-triase aduan dengan AI, memetakan
-hotspot, mendeteksi lonjakan aduan, menyusun koordinasi lintas OPD, dan baru menutup aduan setelah
-bukti penyelesaian diverifikasi AI dan dikonfirmasi warga. Dibuat untuk hackathon IBM.
+Aduin adalah "otak analitik" di balik kanal pengaduan masyarakat pemerintah daerah, dengan studi
+kasus Kabupaten Probolinggo. Prototipe ini dibuat untuk Hackathon IBM.
 
-| Fitur | Halaman | Role |
-|---|---|---|
-| Simulator WhatsApp + klarifikasi otomatis, daftar "Aduan Saya" | `/lapor` | warga |
-| Daftar aduan, triage AI yang bisa dijelaskan + override, Reset Demo | `/dashboard`, `/aduan/[id]` | operator |
-| Peta hotspot + clustering aduan serupa | `/peta` | operator |
-| Peringatan dini lonjakan (z-score) + ringkasan AI | `/alert` | operator |
-| Rencana koordinasi lintas OPD (AI) | `/aduan/[id]` | operator |
-| Tugas per OPD + unggah bukti penyelesaian | `/tugas` | petugas OPD |
-| KPI, tren, sebaran kecamatan, peringkat OPD | `/ringkasan` | pimpinan |
+## 1. Ringkasan
+
+### Masalah
+
+Banyak pemerintah daerah sudah punya kanal pengaduan berbasis WhatsApp (contoh: Halo Sae,
+Kab. Probolinggo). Kanal seperti ini **reaktif**: aduan diterima, dicatat, lalu diteruskan ke
+Organisasi Perangkat Daerah (OPD). Setelah itu:
+
+- aduan tidak punya kategori dan prioritas yang konsisten, sehingga OPD yang tepat tidak selalu jelas;
+- pekerjaan yang melibatkan beberapa OPD dikoordinasikan manual lewat chat atau telepon;
+- tidak ada bukti bahwa masalah benar-benar selesai, dan warga tidak diminta konfirmasi;
+- lonjakan masalah serupa di satu wilayah baru ketahuan setelah viral;
+- pimpinan tidak punya data agregat yang bisa dipakai untuk mengambil keputusan.
+
+### Solusi
+
+Aduin dipasang **di atas** kanal yang sudah ada, bukan menggantikannya. Warga cukup mengadu lewat
+chat. Aduin lalu:
+
+1. men-triase aduan dengan AI dan menjelaskan alasannya;
+2. mengelompokkan aduan serupa dan memetakan hotspot;
+3. menyusun rencana koordinasi lintas OPD;
+4. memverifikasi penyelesaian dari foto sebelum dan sesudah, lalu meminta warga mengonfirmasi;
+5. mendeteksi lonjakan aduan sejak dini dan meringkasnya untuk operator dan pimpinan.
+
+Semua AI dijalankan lewat **Langflow** dengan model **IBM watsonx.ai**. Manusia tetap memegang
+keputusan akhir: operator bisa mengoreksi hasil AI, dan aduan hanya bisa ditutup oleh warga.
+
+## 2. Fitur utama
+
+| Fitur | Yang dilakukan | Halaman | Role |
+|---|---|---|---|
+| **Triage AI yang bisa dijelaskan, dengan klarifikasi** | Simulator WhatsApp. Jika aduan kurang lengkap (mis. tanpa lokasi), bot bertanya balik dulu. Aduan lengkap ditriase: kategori, OPD tujuan, urgensi 1–5, dampak, jalur penanganan, dan **alasan**. Operator bisa meng-override; koreksi tercatat. | `/lapor`, `/dashboard`, `/aduan/[id]` | warga, operator |
+| **Clustering dan peta hotspot** | Aduan diubah menjadi embedding 768 dimensi (pgvector), lalu dikelompokkan jika isinya mirip (cosine ≥ 0,75), lokasinya ≤ 500 m, dan waktunya ≤ 14 hari. Peta Leaflet menampilkan marker, cluster, dan intensitas per kecamatan. | `/peta` | operator |
+| **AI agent koordinasi lintas OPD** | AI menyusun sub-tugas berurutan untuk beberapa OPD beserta ketergantungannya (mis. DPU survei → BPKAD anggaran darurat → DPU perbaikan). Tugas yang bergantung baru bisa dimulai setelah tugas sebelumnya selesai. | `/aduan/[id]`, `/tugas` | operator, petugas OPD |
+| **Verifikasi penyelesaian berbasis foto** | Setelah semua tugas selesai, petugas mengunggah foto bukti. Model vision membandingkan foto sebelum dan sesudah → *Terverifikasi AI* atau *Perlu Ditinjau* (operator memutuskan). Aduan baru **Selesai** setelah warga mengonfirmasi; warga juga bisa menolak. | `/tugas`, `/lapor`, `/aduan/[id]` | petugas OPD, warga, operator |
+| **Early warning dan dashboard pimpinan** | Jumlah aduan 24 jam terakhir per kategori × kecamatan dibandingkan baseline 14 hari (z-score ≥ 2,0 dan minimal 3 aduan). Alert diberi ringkasan AI dan rekomendasi OPD. Dashboard pimpinan berisi KPI, tren 7/30/90 hari, sebaran kecamatan, dan peringkat kinerja OPD. | `/alert`, `/ringkasan` | operator, pimpinan |
+
+Status aduan dikelola sebagai state machine: `pending → triaged / triage_failed → in_progress →
+ai_verified / needs_review → closed`. Status `closed` hanya bisa dicapai dari `ai_verified`.
+
+## 3. Arsitektur singkat
+
+```mermaid
+flowchart LR
+    W["Browser<br/>warga · operator · petugas OPD · pimpinan"]
+    subgraph APP["Next.js 16 (App Router)"]
+        UI["Halaman & komponen<br/>shadcn/ui · Leaflet · Recharts"]
+        API["Route Handlers<br/>/api/*"]
+        LC["src/lib/langflow/client.ts<br/>cache · timeout · validasi Zod"]
+    end
+    subgraph SB["Supabase"]
+        PG[("Postgres + pgvector<br/>RLS · fungsi SQL")]
+        ST[("Storage<br/>aduan-photos")]
+        AU["Auth"]
+    end
+    LF["Langflow<br/>6 flow"]
+    WX["IBM watsonx.ai<br/>region Tokyo (jp-tok)"]
+
+    W --> UI
+    UI --> API
+    API --> PG
+    API --> ST
+    UI --> AU
+    API --> LC
+    LC --> LF
+    LF --> WX
+    LF -. unduh foto .-> ST
+```
+
+- **Next.js + TypeScript + Tailwind + shadcn/ui.** Semua panggilan AI lewat
+  `src/lib/langflow/client.ts`: cek `ai_cache`, panggil Langflow dengan timeout, parsing tahan
+  banting, lalu validasi Zod. Aplikasi **tidak** memanggil watsonx.ai langsung, dan tidak ada panggilan
+  AI dari komponen client.
+- **Supabase**: data dan Row Level Security, `pgvector` untuk embedding, bucket Storage
+  `aduan-photos`, dan Auth untuk akun per role. Statistik early warning dihitung oleh fungsi Postgres
+  `alert_window_stats`. Penggantian rencana koordinasi dilakukan atomik oleh
+  `replace_coordination_plan`.
+- **Langflow 1.12** menjalankan enam flow, dan semua model dipanggil di **IBM watsonx.ai region
+  Tokyo**.
+- **Fallback di setiap flow.** Contohnya: triage yang gagal membuat status `triage_failed`,
+  verifikasi yang gagal membuat status `needs_review`, dan ringkasan alert yang gagal bisa dicoba
+  ulang. Hasil AI untuk data seed disimpan di snapshot, sehingga demo tetap jalan walau Langflow
+  lambat.
 
 Dokumen rinci: [`docs/PRD.md`](docs/PRD.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
-[`docs/LANGFLOW_FLOWS.md`](docs/LANGFLOW_FLOWS.md), [`docs/TASKS.md`](docs/TASKS.md),
-naskah demo [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
+[`docs/LANGFLOW_FLOWS.md`](docs/LANGFLOW_FLOWS.md), [`docs/TASKS.md`](docs/TASKS.md), dan naskah
+demo [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
 
----
+## 4. Enam flow Langflow
 
-## Arsitektur singkat
+Semua flow menerima satu string JSON lewat **Chat Input** dan mengembalikan JSON lewat **Chat
+Output**. Kontrak input/output lengkap ada di [`docs/LANGFLOW_FLOWS.md`](docs/LANGFLOW_FLOWS.md),
+prompt di [`langflow/prompts/`](langflow/prompts/), dan export flow di
+[`langflow/flows/`](langflow/flows/).
 
-```
-Browser ──► Next.js (App Router, Route Handlers) ──► Supabase (Postgres + pgvector, Storage, Auth)
-                     │
-                     └──► Langflow (6 flow) ──► IBM watsonx.ai (region Tokyo)
-```
+| Flow | Fungsi | Komponen | Model (watsonx.ai, Tokyo) | Param |
+|---|---|---|---|---|
+| `aduin-clarify` | Menilai apakah aduan sudah lengkap; jika belum, membuat satu pertanyaan balik | Chat Input → Prompt → IBM watsonx.ai → Chat Output | `mistralai/mistral-small-3-1-24b-instruct-2503` | temp 0.1, 1000 token |
+| `aduin-triage` | Kategori, OPD, urgensi, dampak, jalur, alasan | Chat Input → Prompt → IBM watsonx.ai → Chat Output | `mistralai/mistral-small-3-1-24b-instruct-2503` | temp 0, 400 token |
+| `aduin-embed` | Embedding teks aduan untuk clustering | Chat Input → IBM watsonx.ai Embeddings → custom component **Aduin Embed JSON** → Chat Output | `ibm/granite-embedding-278m-multilingual` (768 dimensi) | — |
+| `aduin-opd-agent` | Rencana sub-tugas lintas OPD beserta ketergantungannya | Chat Input → Prompt Template → IBM watsonx.ai → Chat Output (tanpa komponen Agent) | `mistralai/mistral-small-3-1-24b-instruct-2503` | temp 0.1, 800 token |
+| `aduin-verify` | Membandingkan foto sebelum/sesudah → `ai_verified` / `needs_review` | Chat Input → Prompt Template → custom component **Aduin Verify Vision** → Chat Output | `mistralai/mistral-small-3-1-24b-instruct-2503` (vision) | temp 0, 300 token |
+| `aduin-alert-summary` | Ringkasan lonjakan aduan dan rekomendasi OPD | Chat Input → Prompt → IBM watsonx.ai → Chat Output | `mistralai/mistral-small-3-1-24b-instruct-2503` | temp 0.3, 400 token |
 
-- **Next.js + TypeScript + Tailwind + shadcn/ui.** Semua akses AI lewat `src/lib/langflow/client.ts`
-  (cache `ai_cache` → panggil Langflow → parsing tahan banting → validasi Zod). Aplikasi **tidak**
-  memanggil watsonx.ai langsung.
-- **Supabase**: data + RLS, `pgvector` untuk embedding, bucket Storage `aduan-photos` (publik baca).
-  Statistik early warning dan penggeseran timeline demo dihitung oleh fungsi Postgres (migrasi 0004).
-- **Langflow**: enam flow — `aduin-clarify`, `aduin-triage`, `aduin-embed`, `aduin-opd-agent`,
-  `aduin-verify`, `aduin-alert-summary`.
-- Peta: Leaflet + OpenStreetMap. Grafik: Recharts.
+Endpoint watsonx.ai: `https://jp-tok.ml.cloud.ibm.com`.
 
-## Prasyarat
+**Kenapa Mistral, bukan Granite?** Model Granite untuk teks dan vision tidak tersedia di region
+Tokyo pada akun watsonx.ai yang kami pakai. Karena itu, kelima flow LLM memakai
+`mistral-small-3-1-24b-instruct-2503`, yang juga mendukung input gambar. Embedding tetap memakai
+Granite multilingual karena aduan warga bercampur bahasa Indonesia, Jawa, dan Madura.
+
+**Dua custom component Python:**
+- **Aduin Embed JSON** mengambil `complaint_text` dari input, memanggil handle Embeddings, dan
+  mengembalikan `{"embedding": [...], "model_version": "..."}`.
+- **Aduin Verify Vision** mengunduh foto dari bucket `aduan-photos`, mengubahnya ke base64, lalu
+  memanggil `ModelInference.chat` milik `ibm_watsonx_ai` dengan pesan multimodal. Dari jawaban
+  model, komponen hanya mengambil blok `{...}` supaya code fence yang kadang ditambahkan model
+  terbuang.
+
+## 5. Peran IBM Bob dalam pengembangan
+
+Aduin dikembangkan bersama **IBM Bob** sebagai agen pembangun. Bob dikonfigurasi lewat beberapa
+file:
+
+| File | Isi |
+|---|---|
+| [`.bob/custom_modes.yaml`](.bob/custom_modes.yaml) | Custom mode **Aduin Builder** (`aduin-builder`): engineer full-stack Next.js + Supabase + Langflow. Mode ini wajib membaca `AGENTS.md` dan semua `.bob/rules/` sebelum bekerja, membatasi scope pada enam fitur MVP, dan menegakkan aturan coding. |
+| [`AGENTS.md`](AGENTS.md) | Konteks proyek, dokumen wajib baca, stack, dan aturan kerja: satu milestone per sesi, rencana sebelum kode, lalu build + lint → centang `docs/TASKS.md` → commit. |
+| [`.bob/rules/01-project.md`](.bob/rules/01-project.md) | Ringkasan proyek, persona, scope MVP, dan hal yang di luar scope. |
+| [`.bob/rules/02-coding-standards.md`](.bob/rules/02-coding-standards.md) | TypeScript strict tanpa `any`, shadcn/ui + Tailwind, teks UI Bahasa Indonesia, secret hanya di `.env.local`, serta loading/empty/error state di setiap halaman. |
+| [`.bob/rules/03-langflow.md`](.bob/rules/03-langflow.md) | Semua AI lewat `client.ts`, Flow ID dari env, validasi Zod, parsing tahan banting, timeout + fallback, dan larangan mengedit `langflow/flows/` secara manual. |
+| [`.bob/plans/`](.bob/plans/) | Rencana kerja Bob, mis. migrasi model ke region Tokyo (Granite → Mistral, embedding 1024 → 768 dimensi). |
+
+`docs/TASKS.md` memisahkan setiap milestone (M0–M7) menjadi dua bagian. **"Langflow (manual di
+UI)"** dikerjakan tim di Langflow. **"Kode (Bob)"** dikerjakan agen pemrograman mengikuti aturan
+di atas, lengkap dengan Definition of Done. Hasilnya:
+
+- kerangka Next.js beserta skema database dan RLS (`supabase/migrations/`);
+- data seed ±150 aduan;
+- klien Langflow dan skema Zod;
+- semua halaman dan route API;
+- dokumen kontrak flow (`docs/LANGFLOW_FLOWS.md`) dan prompt di `langflow/prompts/`.
+
+Sebagian milestone (M3–M7) dikerjakan dengan bantuan Claude Code, memakai aturan dan dokumen yang
+sama. Hal ini tercatat di trailer `Co-Authored-By` pada commit terkait.
+
+## 6. Hasil evaluasi
+
+Triage dievaluasi pada **30 aduan held-out**, yaitu aduan baru yang tidak ada di data seed
+([`supabase/seed/eval/heldout.json`](supabase/seed/eval/heldout.json)). Aduan ini ditulis dalam
+bahasa Indonesia informal, Jawa, dan Madura, mencakup ketujuh kategori, dan 5 di antaranya
+sengaja dibuat ambigu. Flow dipanggil **tanpa cache**.
+
+| Ukuran | Hasil |
+|---|---|
+| Akurasi kategori total | **90%** (27/30) |
+| Tanpa 5 kasus ambigu | **96%** (24/25) |
+| Bahasa Jawa | **7/7** |
+| Bahasa Madura | **7/7** |
+| Bahasa Indonesia informal | 13/16 |
+
+Target PRD adalah ≥ 80%. Akurasi pada 150 data seed lebih tinggi, tetapi angka itu kurang bisa
+dipercaya karena prompt disetel dengan data tersebut. Karena itu, angka held-out di atas yang kami
+jadikan acuan.
+
+## 7. Cara menjalankan
+
+### Prasyarat
 
 | Kebutuhan | Keterangan |
 |---|---|
 | Node.js 20+ dan npm | Next.js 16 |
 | Proyek Supabase | Postgres dengan ekstensi `vector` |
-| Langflow 1.12 | lokal (`langflow run`) atau Docker, port 7860 |
-| Akun IBM watsonx.ai | API key + Project ID, akses region Tokyo (`jp-tok`) |
+| Python 3.10+ dan Langflow 1.12 | `pip install langflow` lalu `langflow run` (port 7860), atau Docker |
+| Akun IBM watsonx.ai | API key dan Project ID dengan akses region Tokyo (`jp-tok`) |
 
----
+### 7.1 Supabase dan migrasi
 
-## 1. Setup Supabase
-
-1. Buat proyek Supabase, lalu salin URL, anon key, dan service role key (Project Settings → API).
-2. Terapkan migrasi **berurutan** di SQL editor (atau `supabase db push`):
+1. Buat proyek Supabase, lalu catat URL, anon key, dan service role key (Project Settings → API).
+2. Terapkan migrasi **berurutan** di SQL Editor (atau `supabase db push`):
 
    | File | Isi |
    |---|---|
@@ -63,49 +194,76 @@ Browser ──► Next.js (App Router, Route Handlers) ──► Supabase (Postg
    | `supabase/migrations/0003_coordination_rpc.sql` | `replace_coordination_plan` (ganti rencana OPD secara atomik) |
    | `supabase/migrations/0004_early_warning.sql` | `alert_window_stats` (z-score) dan `shift_seed_timeline` |
 
-## 2. Setup Langflow
+### 7.2 Langflow
 
-Panduan lengkap: [`langflow/README.md`](langflow/README.md).
+Panduan lengkap ada di [`langflow/README.md`](langflow/README.md).
 
-1. Jalankan Langflow (`langflow run`) dan buka `http://localhost:7860`.
-2. **Global Variables** (Settings → Global Variables): `WATSONX_API_KEY` (Credential) dan
-   `WATSONX_PROJECT_ID` (Generic).
-3. **Import enam flow** dari `langflow/flows/` (New Flow → Import): `aduin-clarify.json`,
-   `aduin-triage.json`, `aduin-embed.json`, `aduin-opd-agent.json`, `aduin-verify.json`,
-   `aduin-alert-summary.json`. Setelah import, hubungkan ulang Global Variables di setiap komponen
-   IBM watsonx.ai dan di custom component **Aduin Verify Vision**.
-4. Buat API key Langflow (Settings → API Keys) dan catat **Flow ID** tiap flow (UUID di URL).
+1. Jalankan `langflow run`, lalu buka `http://localhost:7860`.
+2. **Global Variables** (Settings → Global Variables): buat `WATSONX_API_KEY` (tipe Credential) dan
+   `WATSONX_PROJECT_ID` (tipe Generic).
+3. **Import enam flow** dari `langflow/flows/` (New Flow → Import):
+   - `aduin-clarify.json`
+   - `aduin-triage.json`
+   - `aduin-embed.json`
+   - `aduin-opd-agent.json`
+   - `aduin-verify.json`
+   - `aduin-alert-summary.json`
+4. **Hubungkan ulang kredensial.** Global Variables tidak ikut ter-export, jadi pilih ulang
+   `WATSONX_API_KEY` / `WATSONX_PROJECT_ID` di setiap komponen IBM watsonx.ai, IBM watsonx.ai
+   Embeddings, dan custom component **Aduin Verify Vision**. Pastikan endpoint-nya
+   `https://jp-tok.ml.cloud.ibm.com`.
+5. **Custom component** sudah ikut di dalam file flow. Kode lengkapnya, untuk dibuat ulang lewat
+   *New Custom Component*, ada di `docs/LANGFLOW_FLOWS.md` §Flow 3 dan §Flow 5. Jangan pakai fitur
+   *Model Providers*; pakai komponen IBM watsonx.ai dari bundle IBM.
+6. Uji tiap flow di Playground memakai test case di `docs/LANGFLOW_FLOWS.md`.
+7. Buat API key Langflow (Settings → API Keys) dan catat **Flow ID** tiap flow (UUID di URL editor
+   flow). Import membuat UUID baru, jadi selalu ambil ID dari Langflow kamu sendiri.
 
-Model yang dipakai (semua region Tokyo, `https://jp-tok.ml.cloud.ibm.com`):
+### 7.3 `.env.local`
 
-| Flow | Model | Temperature / max tokens |
-|---|---|---|
-| aduin-clarify | `mistralai/mistral-small-3-1-24b-instruct-2503` | 0.1 / 1000 |
-| aduin-triage | `mistralai/mistral-small-3-1-24b-instruct-2503` | 0.0 / 400 |
-| aduin-embed | `ibm/granite-embedding-278m-multilingual` (768 dimensi) | — |
-| aduin-opd-agent | `mistralai/mistral-small-3-1-24b-instruct-2503` (tanpa komponen Agent) | 0.1 / 800 |
-| aduin-verify | `mistralai/mistral-small-3-1-24b-instruct-2503` (vision, via custom component) | 0 / 300 |
-| aduin-alert-summary | `mistralai/mistral-small-3-1-24b-instruct-2503` | 0.3 / 400 |
+Salin `.env.example` menjadi `.env.local`, lalu isi. Semua nilai di bawah adalah placeholder.
+Jangan commit `.env.local`.
 
-Prompt tiap flow ada di `langflow/prompts/`.
+```dotenv
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 
-## 3. `.env.local`
+# Langflow
+LANGFLOW_BASE_URL=http://127.0.0.1:7860
+LANGFLOW_API_KEY=<langflow-api-key>
+LANGFLOW_FLOW_CLARIFY_ID=<uuid>
+LANGFLOW_FLOW_TRIAGE_ID=<uuid>
+LANGFLOW_FLOW_EMBED_ID=<uuid>
+LANGFLOW_FLOW_OPD_AGENT_ID=<uuid>
+LANGFLOW_FLOW_VERIFY_ID=<uuid>
+LANGFLOW_FLOW_ALERT_SUMMARY_ID=<uuid>
 
-Salin `.env.example` menjadi `.env.local`, lalu isi:
+# Embedding & clustering
+EMBEDDING_DIMENSION=768
+CLUSTER_SIMILARITY_THRESHOLD=0.75
+CLUSTER_RADIUS_METERS=500
+CLUSTER_WINDOW_DAYS=14
 
-| Variabel | Isi |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Dari Supabase |
-| `LANGFLOW_BASE_URL` | `http://127.0.0.1:7860` |
-| `LANGFLOW_API_KEY` | API key Langflow |
-| `LANGFLOW_FLOW_*_ID` (6 variabel) | Flow ID tiap flow |
-| `EMBEDDING_DIMENSION` | `768` |
-| `CLUSTER_SIMILARITY_THRESHOLD`, `CLUSTER_RADIUS_METERS`, `CLUSTER_WINDOW_DAYS` | `0.75`, `500`, `14` |
-| `ALERT_THRESHOLD_Z`, `ALERT_MIN_COUNT`, `LANGFLOW_ALERT_TIMEOUT_MS` | `2.0`, `3`, `10000` |
-| `NEXT_PUBLIC_DEMO_MODE` | `true` untuk demo (RoleSwitcher, login per role, Reset Demo) |
-| `DEMO_SEED_PASSWORD` | Password semua akun demo (hanya dibaca server) |
+# Early warning
+ALERT_THRESHOLD_Z=2.0
+ALERT_MIN_COUNT=3
+LANGFLOW_ALERT_TIMEOUT_MS=10000
 
-## 4. Instal dan isi data
+# Mode demo
+NEXT_PUBLIC_DEMO_MODE=true
+DEMO_SEED_PASSWORD=<kata-sandi-akun-demo>
+```
+
+- `NEXT_PUBLIC_DEMO_MODE=true` mengaktifkan tiga hal: tombol masuk per role di landing page,
+  RoleSwitcher di header, dan tombol Reset Demo. Wajib `false` di production.
+- `DEMO_SEED_PASSWORD` hanya dibaca server, jadi jangan pernah dijadikan variabel `NEXT_PUBLIC_*`.
+  Hindari karakter `$` di dalamnya (lihat Troubleshooting).
+- Kredensial watsonx.ai **tidak** disimpan di `.env.local`. Kredensial itu hanya ada di Global
+  Variables Langflow.
+
+### 7.4 Instal dan isi data
 
 ```bash
 npm install
@@ -113,30 +271,35 @@ npx tsx --env-file=.env.local supabase/seed/index.ts
 npm run dev        # http://localhost:3000
 ```
 
-`index.ts` membangun keadaan demo lengkap **tanpa memanggil Langflow**: wilayah, OPD, 6 akun demo,
-±150 aduan seed, hasil AI dari `supabase/seed/ai-cache-snapshot.json` (triage, embedding, isi
-`ai_cache`), rencana koordinasi sederhana, clustering, timeline segar, dan deteksi early warning
-(alert diare Sumberasih). ⚠️ Script ini menghapus semua aduan (termasuk aduan latihan), alert, dan
-cluster sebelum membangun ulang; akun demo tidak dihapus.
+`supabase/seed/index.ts` membangun keadaan demo lengkap **tanpa memanggil Langflow**:
 
-### Script lain (`npx tsx --env-file=.env.local <script>`)
+- wilayah (5 kecamatan dan desanya) dan 7 OPD;
+- 6 akun demo;
+- ±150 aduan seed;
+- hasil AI dari `supabase/seed/ai-cache-snapshot.json` (triage, embedding, isi `ai_cache`);
+- rencana koordinasi sederhana dan clustering;
+- timeline yang digeser ke waktu sekarang, lalu deteksi early warning, sehingga alert diare
+  Sumberasih terbentuk.
 
-| Script | Kapan dipakai |
-|---|---|
-| `supabase/seed/refresh-demo-timeline.ts` | **Sebelum demo.** Menggeser timeline seed agar aduan diare Sumberasih terbaru ±2 jam lalu, lalu menjalankan early warning. Aman diulang. |
-| `supabase/seed/triage-seed.ts` | Membuat ulang hasil triage seed lewat Langflow (mis. setelah prompt berubah). |
-| `supabase/seed/embed-seed.ts` | Membuat embedding yang belum ada lewat Langflow + clustering ulang. |
-| `supabase/seed/precompute-ai.ts` | Mengekspor hasil AI dari database ke `ai-cache-snapshot.json` (tanpa Langflow) dan mencetak akurasi triage seed. Commit file hasilnya. |
-| `supabase/seed/fix-coordinates.ts` | Memperbarui koordinat wilayah/aduan di database lama ke tata letak terbaru tanpa menghapus hasil AI, lalu clustering ulang. |
-| `supabase/seed/eval-triage.ts` | Evaluasi held-out: 30 aduan baru (`supabase/seed/eval/heldout.json`) ke aduin-triage tanpa cache, tanpa menulis DB; mencetak akurasi total, per kategori, dan daftar yang tidak cocok. |
+⚠️ Script ini menghapus semua aduan (termasuk aduan latihan), alert, dan cluster sebelum
+membangun ulang. Akun demo tidak dihapus.
 
-Urutan untuk memperbarui snapshot AI: `triage-seed.ts` → `embed-seed.ts` → `precompute-ai.ts` →
-commit `ai-cache-snapshot.json`.
+Script lain dijalankan dengan `npx tsx --env-file=.env.local <script>`:
 
-## Akun demo
+| Urutan | Script | Kapan dipakai |
+|---|---|---|
+| — | `supabase/seed/index.ts` | Seed utama (di atas). |
+| — | `supabase/seed/refresh-demo-timeline.ts` | **Sebelum demo.** Menggeser timeline seed agar aduan diare Sumberasih terbaru ±2 jam lalu, lalu menjalankan early warning. Aman diulang. |
+| 1 | `supabase/seed/triage-seed.ts` | Membuat ulang hasil triage seed lewat Langflow (mis. setelah prompt berubah). |
+| 2 | `supabase/seed/embed-seed.ts` | Membuat embedding yang belum ada lewat Langflow, lalu clustering ulang. |
+| 3 | `supabase/seed/precompute-ai.ts` | Mengekspor hasil AI dari database ke `ai-cache-snapshot.json` (tanpa Langflow) dan mencetak akurasi triage seed. Commit file hasilnya. |
+| — | `supabase/seed/fix-coordinates.ts` | Memperbarui koordinat di database lama ke tata letak terbaru tanpa menghapus hasil AI. |
+| — | `supabase/seed/eval-triage.ts` | Evaluasi held-out (lihat 7.6). |
 
-Password semua akun = `DEMO_SEED_PASSWORD`. Saat `NEXT_PUBLIC_DEMO_MODE=true`, masuk lewat tombol di
-landing page `/` atau RoleSwitcher di header.
+Untuk memperbarui snapshot AI, jalankan urutan 1 → 2 → 3, lalu commit `ai-cache-snapshot.json`.
+
+**Akun demo.** Semua akun memakai password `DEMO_SEED_PASSWORD`. Saat mode demo aktif, masuk lewat
+tombol di landing page `/` atau RoleSwitcher di header.
 
 | Email | Role | Halaman utama |
 |---|---|---|
@@ -144,38 +307,55 @@ landing page `/` atau RoleSwitcher di header.
 | `operator@demo.aduin` | operator | `/dashboard` |
 | `pu@demo.aduin` | petugas OPD (DPU) | `/tugas` |
 | `dinkes@demo.aduin` | petugas OPD (Dinkes) | `/tugas` |
-| `bpkad@demo.aduin` | petugas OPD (BPKAD) — tugas anggaran di rencana koordinasi | `/tugas` |
+| `bpkad@demo.aduin` | petugas OPD (BPKAD) | `/tugas` |
 | `pimpinan@demo.aduin` | pimpinan | `/ringkasan` |
 
-## Reset demo
+### 7.5 Reset Demo
 
-- **Dari aplikasi:** masuk sebagai operator → `/dashboard` → **Reset Demo** → konfirmasi
-  (±1 menit). Aduan seed dan hasil AI dipulihkan dari snapshot, aduan latihan dihapus, timeline
-  digeser, dan early warning dijalankan; pesan hasil menyebut apakah alert diare Sumberasih aktif.
+Ada dua cara:
+
+- **Dari aplikasi:** masuk sebagai operator → `/dashboard` → **Reset Demo** → konfirmasi (±1 menit).
+  Aduan seed dan hasil AI dipulihkan dari snapshot, aduan latihan dihapus, timeline digeser, dan
+  early warning dijalankan. Pesan hasilnya menyebut apakah alert diare Sumberasih aktif. Tombol ini
+  hanya untuk operator dan hanya muncul jika `NEXT_PUBLIC_DEMO_MODE=true`.
 - **Dari terminal:** `npx tsx --env-file=.env.local supabase/seed/index.ts`.
 
-Naskah demo dan checklist persiapan: [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
+Naskah demo dan checklist persiapan ada di [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
 
-## Troubleshooting
+### 7.6 Menjalankan evaluasi
 
-| Gejala | Penyebab / solusi |
-|---|---|
-| Triage selalu `triage_failed` | Langflow mati atau Flow ID salah. Cek `curl http://localhost:7860/health` dan `LANGFLOW_FLOW_TRIAGE_ID`. |
-| `401 Unauthorized` dari Langflow | `LANGFLOW_API_KEY` salah. |
-| Error "Terapkan migrasi …0003/0004…" | Migrasi belum diterapkan — jalankan file SQL yang disebut. |
-| Alert diare Sumberasih tidak muncul | Timeline seed sudah lewat 24 jam. Jalankan `refresh-demo-timeline.ts` atau Reset Demo. |
-| Alert ada tapi "Ringkasan AI belum tersedia" | Langflow gagal/timeout saat alert dibuat. Nyalakan Langflow lalu klik **Coba Lagi** di `/alert`. |
-| Verifikasi foto selalu "Perlu Ditinjau" dengan alasan "Verifikasi AI gagal" | Flow aduin-verify gagal (Langflow mati, kredensial Aduin Verify Vision belum terhubung, atau foto tidak bisa diunduh — bucket `aduan-photos` harus publik). |
-| "Gagal membuat rencana koordinasi" | Langflow gagal atau timeout (batas 60 detik); rencana lama tetap utuh — coba lagi. |
-| Peta kosong | Aduan belum punya koordinat atau embedding — jalankan seed utama. |
-| Embedding gagal validasi | Model di aduin-embed harus `ibm/granite-embedding-278m-multilingual` (768 dimensi). |
-| Prompt Langflow error "unclosed tag" | Kurung kurawal ganda tidak berpasangan di template — lihat `langflow/README.md`. |
-| Reset Demo ditolak 403 | Hanya operator dan hanya jika `NEXT_PUBLIC_DEMO_MODE=true`. |
+Pastikan Langflow menyala dan `LANGFLOW_FLOW_TRIAGE_ID` sudah benar, lalu jalankan:
 
-## Perintah pengembangan
+```bash
+npx tsx --env-file=.env.local supabase/seed/eval-triage.ts
+```
+
+Script ini mengirim 30 aduan held-out ke `aduin-triage` tanpa cache dan tanpa menulis ke database.
+Hasilnya berupa akurasi total, akurasi per kategori dan per bahasa, serta daftar aduan yang tidak
+cocok.
+
+### Perintah pengembangan
 
 ```bash
 npm run dev     # server pengembangan
-npm run build   # build produksi (cek TypeScript)
+npm run build   # build produksi (termasuk cek TypeScript)
 npm run lint    # ESLint
 ```
+
+## 8. Troubleshooting
+
+Masalah yang pernah kami temui:
+
+| Gejala | Penyebab | Solusi |
+|---|---|---|
+| Script seed gagal: URL Supabase / key kosong, atau `DEMO_SEED_PASSWORD` tidak terbaca | `npx tsx` tidak membaca `.env.local`. Script memakai `dotenv/config`, yang hanya membaca `.env`. | Selalu jalankan dengan `npx tsx --env-file=.env.local <script>`. |
+| Aplikasi dibuka lewat alamat IP (mis. `http://192.168.x.x:3000`): halaman tampil tapi tombol tidak berfungsi, dan terminal menulis *Blocked cross-origin request … allowedDevOrigins* | Server dev Next.js memblokir permintaan ke aset `/_next/*` dari origin selain `localhost`. | Buka lewat `http://localhost:3000`. Jika harus lewat IP (mis. dari HP), tambahkan `allowedDevOrigins: ["192.168.x.x"]` di `next.config.ts`, atau pakai `npm run build && npm run start`. |
+| Model Granite tidak muncul atau gagal dipanggil, atau Langflow terus memvalidasi `granite-4-h-small` | Model Granite teks dan vision tidak tersedia di region Tokyo pada akun kami. Fitur *Model Providers* Langflow juga selalu memvalidasi model Granite. | Pakai `mistralai/mistral-small-3-1-24b-instruct-2503` untuk LLM dan vision, serta `ibm/granite-embedding-278m-multilingual` untuk embedding, dengan endpoint `https://jp-tok.ml.cloud.ibm.com`. Pakai komponen IBM watsonx.ai langsung, jangan *Model Providers*, dan jangan komponen *Agent*. |
+| Komponen Prompt Langflow menolak template: **"unclosed tag"** | `{nama}` dianggap variabel. Kurung kurawal literal harus `{{ }}` dan setiap `{{` harus berpasangan dengan `}}`. Kalimat seperti "Awali jawaban dengan karakter {{" memicu error ini. | Escape contoh JSON menjadi `{{ … }}`, dan tulis instruksi penutup dengan kata-kata: "Karakter pertama jawabanmu harus kurung kurawal buka…". Lihat `langflow/README.md`. |
+| Login akun demo gagal ("Invalid login credentials"), padahal seed sukses | Ada karakter `$` di nilai `.env.local`, mis. `DEMO_SEED_PASSWORD`. Next.js mengekspansi `$NAMA` sebagai variabel (jadi kosong atau terpotong), sedangkan `tsx --env-file` membaca nilainya apa adanya. Akibatnya password di seed berbeda dari password di aplikasi. | Pakai password tanpa `$`. Setelah mengganti, jalankan ulang seed agar password akun disinkronkan. |
+| Triage selalu `triage_failed` | Langflow mati atau Flow ID salah. | Cek `curl http://localhost:7860/health` dan `LANGFLOW_FLOW_TRIAGE_ID`. |
+| `401 Unauthorized` dari Langflow | `LANGFLOW_API_KEY` salah. | Buat ulang API key di Langflow. |
+| Alert diare Sumberasih tidak muncul | Timeline seed sudah lewat 24 jam. | Jalankan `refresh-demo-timeline.ts`, atau Reset Demo. |
+| Alert tampil tanpa ringkasan ("Ringkasan AI belum tersedia") | Langflow gagal atau timeout saat alert dibuat. | Nyalakan Langflow, lalu klik **Coba Lagi** di `/alert`. |
+| Verifikasi foto selalu "Perlu Ditinjau" dengan alasan "Verifikasi AI gagal" | Flow `aduin-verify` gagal. | Cek kredensial Aduin Verify Vision, pastikan bucket `aduan-photos` publik, dan pastikan Langflow menyala. |
+| Error "Terapkan migrasi …0003/0004…" | Migrasi belum diterapkan. | Jalankan file SQL yang disebut. |
