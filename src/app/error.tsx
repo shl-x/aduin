@@ -10,30 +10,28 @@
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function GlobalError({ error, reset }: { error: Error; reset: () => void }) {
   return (
-    <div className="max-w-xl mx-auto">
-      <Card>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-            <AlertTriangle size={40} strokeWidth={1.2} className="text-destructive" />
-            <div>
-              <p className="font-medium">Terjadi kesalahan saat memuat halaman</p>
-              <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={reset}>
-                Coba lagi
-              </Button>
-              <Button size="sm" variant="ghost" render={<Link href="/" />}>
-                Ke beranda
-              </Button>
-            </div>
+    <div className="max-w-xl mx-auto py-10">
+      <div className="rounded-lg border bg-surface px-6 py-12 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <span className="flex size-12 items-center justify-center rounded-md border-[1.5px] border-danger text-danger-text">
+            <AlertTriangle className="size-6" aria-hidden />
+          </span>
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-danger-text">Gangguan sistem</p>
+          <div role="alert">
+            <h1 className="text-lg font-bold">Terjadi kesalahan saat memuat halaman</h1>
+            <p className="text-sm text-muted-foreground mt-1 break-words">{error.message}</p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button onClick={reset}>Coba lagi</Button>
+            <Button variant="outline" render={<Link href="/" />}>
+              Ke beranda
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

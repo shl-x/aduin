@@ -56,7 +56,7 @@ export function VerificationReviewActions({ complaintId }: { complaintId: string
         className="min-h-16"
         disabled={pending !== null}
       />
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" onClick={() => submit("approve")} disabled={pending !== null}>
           {pending === "approve" ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}

@@ -18,9 +18,9 @@
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { StatusStamp } from "@/components/status-stamp";
+import { ticketId } from "@/components/page-header";
 import { CATEGORIES } from "@/lib/constants/categories";
-import { STATUS_LABELS, STATUS_BADGE_VARIANT, type ComplaintStatus } from "@/lib/constants/status";
 import { getMarkerColor, KECAMATAN_CIRCLE_COLOR } from "@/lib/constants/map-colors";
 import type { ComplaintMarker, KecamatanStat, ClusterInfo } from "./types";
 
@@ -53,7 +53,8 @@ export default function LeafletMap({
       center={CENTER}
       zoom={11}
       scrollWheelZoom
-      style={{ height: "600px", width: "100%", borderRadius: "0.5rem", zIndex: 0 }}
+      style={{ height: "min(600px, 70vh)", minHeight: 360, width: "100%", borderRadius: "0.5rem", zIndex: 0 }}
+      className="border"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -77,7 +78,7 @@ export default function LeafletMap({
             }}
           >
             <Tooltip direction="top">
-              <span className="font-medium">{k.name}</span> — {k.activeCount} aduan aktif
+              <span className="font-medium">{k.name}</span> — <span className="font-mono">{k.activeCount}</span> aduan aktif
             </Tooltip>
           </Circle>
         );
@@ -105,9 +106,10 @@ export default function LeafletMap({
           >
             <Popup maxWidth={280}>
               <div className="space-y-1.5 text-sm">
-                <Badge variant={STATUS_BADGE_VARIANT[c.status as ComplaintStatus] ?? "outline"}>
-                  {STATUS_LABELS[c.status as ComplaintStatus] ?? c.status}
-                </Badge>
+                <div className="flex items-center justify-between gap-2">
+                  <StatusStamp status={c.status} size="sm" />
+                  <span className="font-mono text-[11px] text-muted-foreground">{ticketId(c.id)}</span>
+                </div>
                 <p className="font-medium leading-snug">{c.text}</p>
                 <dl className="text-xs text-muted-foreground grid grid-cols-[auto_1fr] gap-x-2">
                   <dt>Kategori</dt>
@@ -119,7 +121,7 @@ export default function LeafletMap({
                   <dt>Wilayah</dt>
                   <dd>{c.regionName ?? "—"}</dd>
                   <dt>Tanggal</dt>
-                  <dd>
+                  <dd className="font-mono">
                     {new Date(c.reportedAt).toLocaleDateString("id-ID", {
                       day: "2-digit",
                       month: "short",
@@ -130,7 +132,7 @@ export default function LeafletMap({
                 {cluster && (
                   <div className="border-t pt-1.5 mt-1.5">
                     <p className="text-xs font-medium">
-                      Cluster: {cluster.label ?? "Tanpa label"} ({cluster.memberCount} aduan)
+                      Cluster: {cluster.label ?? "Tanpa label"} (<span className="font-mono">{cluster.memberCount}</span> aduan)
                     </p>
                     {clusterMembers.length > 0 && (
                       <ul className="text-xs text-muted-foreground list-disc pl-4 mt-1 space-y-0.5 max-h-24 overflow-y-auto">

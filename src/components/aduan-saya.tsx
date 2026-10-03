@@ -13,11 +13,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Inbox, Loader2, XCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PhotoCompare } from "@/components/photo-compare";
-import { STATUS_BADGE_VARIANT, STATUS_LABELS, type ComplaintStatus } from "@/lib/constants/status";
+import { StatusStamp } from "@/components/status-stamp";
+import { AduinMark } from "@/components/brand/AduinLogo";
+import { Eyebrow, ticketId } from "@/components/page-header";
 
 export interface MyComplaint {
   id: string;
@@ -67,8 +68,13 @@ function ConfirmationBubble({ complaint }: { complaint: MyComplaint }) {
   }
 
   return (
-    <div className="rounded-2xl rounded-bl-sm bg-card ring-1 ring-foreground/10 p-3.5 space-y-3 text-sm">
-      <p className="text-xs font-semibold text-muted-foreground">Aduin</p>
+    <div className="flex items-start gap-2">
+    <AduinMark size={28} title="" className="mt-1" />
+    <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border-[1.5px] border-accent bg-card p-3.5 space-y-3 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-primary">Aduin</p>
+        <span className="font-mono text-[11px] text-muted-foreground">{ticketId(complaint.id)}</span>
+      </div>
       <p>
         Kabar baik! Aduan Anda <span className="font-medium">&ldquo;{complaint.text}&rdquo;</span> sudah
         ditangani oleh petugas dan hasilnya telah diperiksa. Mohon konfirmasi apakah masalahnya memang
@@ -82,27 +88,27 @@ function ConfirmationBubble({ complaint }: { complaint: MyComplaint }) {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Ceritakan apa yang belum beres (wajib)"
+          aria-label="Alasan penolakan"
           className="min-h-16"
           disabled={pending !== null}
         />
       )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
 
       <div className="flex flex-wrap gap-2">
         {!rejecting ? (
           <>
-            <Button type="button" size="sm" onClick={() => submit(true)} disabled={pending !== null}>
-              {pending === "confirm" ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
+            <Button type="button" variant="action" onClick={() => submit(true)} disabled={pending !== null}>
+              {pending === "confirm" ? <Loader2 className="animate-spin" aria-hidden /> : <CheckCircle2 aria-hidden />}
               Konfirmasi Selesai
             </Button>
             <Button
               type="button"
-              size="sm"
               variant="outline"
               onClick={() => setRejecting(true)}
               disabled={pending !== null}
             >
-              <XCircle />
+              <XCircle aria-hidden />
               Tolak
             </Button>
           </>
@@ -110,17 +116,15 @@ function ConfirmationBubble({ complaint }: { complaint: MyComplaint }) {
           <>
             <Button
               type="button"
-              size="sm"
               variant="destructive"
               onClick={() => submit(false)}
               disabled={pending !== null}
             >
-              {pending === "reject" ? <Loader2 className="animate-spin" /> : <XCircle />}
+              {pending === "reject" ? <Loader2 className="animate-spin" aria-hidden /> : <XCircle aria-hidden />}
               Kirim Penolakan
             </Button>
             <Button
               type="button"
-              size="sm"
               variant="ghost"
               onClick={() => {
                 setRejecting(false);
@@ -134,6 +138,7 @@ function ConfirmationBubble({ complaint }: { complaint: MyComplaint }) {
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }
@@ -151,15 +156,18 @@ export function AduanSaya({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold tracking-tight">Aduan Saya</h2>
+      <div>
+        <Eyebrow>Riwayat</Eyebrow>
+        <h2 className="text-lg font-bold tracking-tight">Aduan Saya</h2>
+      </div>
 
       {loadError ? (
-        <p className="text-sm text-destructive rounded-lg border border-destructive/30 p-4 text-center">
+        <p role="alert" className="text-sm text-danger-text rounded-lg border border-destructive/30 p-4 text-center">
           Gagal memuat aduan Anda: {loadError}
         </p>
       ) : complaints.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border py-10 text-center gap-3 text-muted-foreground">
-          <Inbox size={36} strokeWidth={1.2} />
+          <Inbox size={36} strokeWidth={1.4} aria-hidden />
           <div>
             <p className="font-medium text-foreground">Belum ada aduan</p>
             <p className="text-sm mt-1">Aduan yang Anda kirim lewat chat di atas akan muncul di sini.</p>
@@ -175,25 +183,25 @@ export function AduanSaya({
             </div>
           )}
 
-          <ul className="divide-y rounded-lg border">
+          <ul className="divide-y rounded-lg border bg-surface">
             {others.slice(0, visible).map((c) => {
-              const statusKey = c.status as ComplaintStatus;
               return (
                 <li key={c.id} className="flex items-start justify-between gap-3 p-3">
                   <div className="min-w-0">
                     <p className="text-sm line-clamp-2">{c.text}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
+                      <span className="font-mono">{ticketId(c.id)}</span> ·{" "}
                       {[c.category_label, c.region_name].filter(Boolean).join(" · ") || "Belum ditriase"} ·{" "}
-                      {new Date(c.reported_at).toLocaleDateString("id-ID", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      <span className="font-mono">
+                        {new Date(c.reported_at).toLocaleDateString("id-ID", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
                     </p>
                   </div>
-                  <Badge variant={STATUS_BADGE_VARIANT[statusKey] ?? "outline"} className="shrink-0">
-                    {STATUS_LABELS[statusKey] ?? c.status}
-                  </Badge>
+                  <StatusStamp status={c.status} size="sm" className="shrink-0" />
                 </li>
               );
             })}
@@ -203,8 +211,8 @@ export function AduanSaya({
           </ul>
 
           {others.length > visible && (
-            <Button type="button" variant="outline" size="sm" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
-              Tampilkan lebih banyak ({others.length - visible} lagi)
+            <Button type="button" variant="outline" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+              Tampilkan lebih banyak (<span className="font-mono">{others.length - visible}</span> lagi)
             </Button>
           )}
         </>

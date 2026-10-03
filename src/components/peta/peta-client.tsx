@@ -97,9 +97,9 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
           <Select items={CATEGORY_SELECT_ITEMS} value={category} onValueChange={(v) => setCategory(v ?? ALL)}>
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-full sm:w-56" aria-label="Filter kategori">
               <SelectValue>{(v: string | null) => CATEGORY_SELECT_ITEMS[v ?? ALL] ?? "Semua kategori"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -117,7 +117,7 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
             value={handlingPath}
             onValueChange={(v) => setHandlingPath(v ?? ALL)}
           >
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-44" aria-label="Filter jalur penanganan">
               <SelectValue>{(v: string | null) => HANDLING_PATH_SELECT_ITEMS[v ?? ALL] ?? "Semua jalur"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -132,9 +132,9 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
         </div>
 
         <div className="flex items-center gap-2">
-          {recomputeError && <p className="text-xs text-destructive">{recomputeError}</p>}
-          <Button onClick={handleRecompute} disabled={recomputing} variant="outline" size="sm">
-            <RefreshCw size={14} className={recomputing ? "animate-spin" : ""} />
+          {recomputeError && <p role="alert" className="text-xs text-danger-text">{recomputeError}</p>}
+          <Button onClick={handleRecompute} disabled={recomputing} variant="outline">
+            <RefreshCw size={14} className={recomputing ? "animate-spin" : ""} aria-hidden />
             {recomputing ? "Menghitung ulang…" : "Hitung Ulang Cluster"}
           </Button>
         </div>
@@ -147,7 +147,7 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center justify-center py-20 text-center gap-4 text-muted-foreground">
-              <MapIcon size={48} strokeWidth={1.2} />
+              <MapIcon size={40} strokeWidth={1.4} aria-hidden />
               <div>
                 <p className="font-medium text-foreground">Belum ada aduan dengan koordinat</p>
                 <p className="text-sm mt-1">
@@ -161,7 +161,7 @@ export function PetaClient({ complaints, kecamatanStats, clustersById }: PetaCli
         <Card>
           <CardContent>
             <div className="flex flex-col items-center justify-center py-20 text-center gap-4 text-muted-foreground">
-              <MapIcon size={48} strokeWidth={1.2} />
+              <MapIcon size={40} strokeWidth={1.4} aria-hidden />
               <div>
                 <p className="font-medium text-foreground">Tidak ada aduan yang cocok dengan filter</p>
                 <p className="text-sm mt-1">Coba ubah filter kategori atau jalur.</p>

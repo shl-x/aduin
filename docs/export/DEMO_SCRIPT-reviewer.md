@@ -10,7 +10,7 @@
 Skenario end-to-end Step 1–7 (PRD.md §5), ±10 menit. Satu presenter mengoperasikan aplikasi; tiap
 langkah berisi role yang dipakai, aksi yang diklik, hasil yang diharapkan, dan yang diucapkan.
 
-**Pindah role** lewat tombol di header (*Demo: Warga · Operator · DPU · Dinkes · BPKAD · Pimpinan*)
+**Pindah role** lewat tombol **Mode demo** di header (*Warga · Operator · DPU · Dinkes · BPKAD · Pimpinan*)
 atau tombol "Masuk sebagai …" di landing page `/`.
 
 **Foto demo** (siapkan di desktop laptop demo):
@@ -58,7 +58,7 @@ Gunakan dua foto lokasi yang sama dari sudut yang mirip. AI vision hanya memberi
    > Pak, jalan di depan SD Negeri 1 Bantaran berlubang besar, sudah seminggu belum diperbaiki, berbahaya untuk anak sekolah.
 
 **Hasil yang diharapkan:** bot tidak bertanya balik (detail sudah cukup). Dalam < 10 detik muncul
-balasan "Aduan Anda sudah tercatat dan diproses AI ✅" dengan kategori, OPD, urgensi, dan alasan.
+balasan "Aduan Anda sudah tercatat dan diproses AI." dengan kategori, OPD, urgensi, dan alasan.
 Aduan muncul di daftar **Aduan Saya** di bawah chat.
 
 **Ucapkan:** "Warga cukup mengadu seperti chat WhatsApp biasa. Kalau aduannya kurang lengkap, misalnya
@@ -150,7 +150,7 @@ gagal, lanjutkan Step 6 dengan rencana sederhana (satu tugas DPU).
   URL bucket. (Unggahan lewat aplikasi selalu mendapat path baru ber-timestamp, jadi aman dari
   masalah ini.)
 
-**Hasil yang diharapkan:** setelah unggah (< 1 menit) muncul **"Terverifikasi AI ✅ — menunggu
+**Hasil yang diharapkan:** setelah unggah (< 1 menit) muncul **"Terverifikasi AI — menunggu
 konfirmasi warga"** beserta alasan AI. Setelah warga mengonfirmasi, status aduan menjadi **Selesai**.
 
 **Ucapkan:** "Tiket tidak bisa ditutup sepihak. Petugas harus mengunggah bukti, AI membandingkan foto

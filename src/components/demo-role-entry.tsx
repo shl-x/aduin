@@ -64,14 +64,13 @@ export function DemoRoleEntry() {
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {ROLES.map((r) => (
-          <div key={r.key} className="rounded-xl border bg-card p-4 flex flex-col gap-3">
+          <div key={r.key} className="rounded-lg border bg-card p-4 flex flex-col gap-3">
             <div>
-              <p className="font-medium">{r.title}</p>
+              <p className="font-semibold">{r.title}</p>
               <p className="text-sm text-muted-foreground mt-0.5">{r.description}</p>
             </div>
             <Button
               type="button"
-              size="sm"
               variant={r.key === "operator" ? "default" : "outline"}
               className="mt-auto self-start"
               disabled={loading !== null}
@@ -83,7 +82,7 @@ export function DemoRoleEntry() {
           </div>
         ))}
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger-text">{error}</p>}
     </div>
   );
 }

@@ -50,9 +50,9 @@ export function DashboardFilters() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
       <Select value={status} onValueChange={(v) => updateParam("status", v)}>
-        <SelectTrigger className="w-44">
+        <SelectTrigger className="w-full sm:w-44" aria-label="Filter status">
           <SelectValue>{(v: string | null) => STATUS_ITEMS[v ?? ALL] ?? "Semua status"}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -66,7 +66,7 @@ export function DashboardFilters() {
       </Select>
 
       <Select value={category} onValueChange={(v) => updateParam("category", v)}>
-        <SelectTrigger className="w-56">
+        <SelectTrigger className="w-full sm:w-56" aria-label="Filter kategori">
           <SelectValue>{(v: string | null) => CATEGORY_ITEMS[v ?? ALL] ?? "Semua kategori"}</SelectValue>
         </SelectTrigger>
         <SelectContent>

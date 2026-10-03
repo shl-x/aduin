@@ -5,26 +5,27 @@
  * dengan id yang tidak ada (atau aduan latihan yang terhapus oleh Reset Demo).
  */
 import Link from "next/link";
-import { SearchX } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AduinMark } from "@/components/brand/AduinLogo";
 
 export default function NotFound() {
   return (
-    <div className="max-w-xl mx-auto">
-      <Card>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-16 text-center gap-4 text-muted-foreground">
-            <SearchX size={40} strokeWidth={1.2} />
-            <div>
-              <p className="font-medium text-foreground">Halaman atau aduan tidak ditemukan</p>
-              <p className="text-sm mt-1">Data mungkin sudah dihapus, misalnya setelah Reset Demo.</p>
-            </div>
-            <Link href="/" className="text-sm text-primary hover:underline">
-              Kembali ke beranda
-            </Link>
+    <div className="max-w-xl mx-auto py-10">
+      <div className="rounded-lg border bg-surface px-6 py-12 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <AduinMark size={48} title="" />
+          <p className="font-mono text-4xl font-semibold tracking-tight text-ink">404</p>
+          <div>
+            <h1 className="text-lg font-bold">Halaman atau aduan tidak ditemukan</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Data mungkin sudah dihapus, misalnya setelah Reset Demo.
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          <Button variant="outline" render={<Link href="/" />}>
+            Kembali ke beranda
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

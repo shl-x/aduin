@@ -29,6 +29,7 @@ import {
 } from "@/lib/analytics/dashboard";
 import { getActiveAlerts, type ActiveAlert } from "@/lib/analytics/early-warning";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = { title: "Ringkasan Kinerja" };
 
@@ -37,16 +38,25 @@ function formatHours(hours: number | null): string {
   return `${hours.toLocaleString("id-ID", { maximumFractionDigits: 1 })} jam`;
 }
 
-function KpiTile({ label, value, hint }: { label: string; value: string; hint: string }) {
+/** Kartu KPI: label kecil kapital di atas, angka besar IBM Plex Mono di bawah. */
+function KpiTile({ label, value, unit, hint }: { label: string; value: string; unit?: string; hint: string }) {
   return (
     <Card>
-      <CardContent className="space-y-1">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-3xl font-semibold tracking-tight">{value}</p>
+      <CardContent className="space-y-2">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+        <p className="font-mono text-3xl font-semibold leading-none tracking-tight text-ink">
+          {value}
+          {unit && <span className="ml-1 text-base font-medium text-muted-foreground">{unit}</span>}
+        </p>
         <p className="text-xs text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>
   );
+}
+
+function formatHoursValue(hours: number | null): string {
+  if (hours === null) return "—";
+  return hours.toLocaleString("id-ID", { maximumFractionDigits: 1 });
 }
 
 export default async function RingkasanPage({
@@ -59,12 +69,11 @@ export default async function RingkasanPage({
   const role = await getSessionRole();
 
   const header = (
-    <div>
-      <h1 className="text-2xl font-bold tracking-tight">Ringkasan Kinerja</h1>
-      <p className="text-muted-foreground text-sm mt-1">
-        Gambaran penanganan aduan masyarakat untuk pimpinan daerah.
-      </p>
-    </div>
+    <PageHeader
+      eyebrow="Pimpinan · Dashboard"
+      title="Ringkasan Kinerja"
+      description="Gambaran penanganan aduan masyarakat untuk pimpinan daerah."
+    />
   );
 
   if (role !== "pimpinan" && role !== "operator") {
@@ -74,7 +83,7 @@ export default async function RingkasanPage({
         <Card>
           <CardContent>
             <div className="flex flex-col items-center justify-center py-16 text-center gap-4 text-muted-foreground">
-              <BarChart3 size={48} strokeWidth={1.2} />
+              <BarChart3 size={40} strokeWidth={1.4} aria-hidden />
               <p className="font-medium text-foreground">Halaman ini khusus pimpinan.</p>
             </div>
           </CardContent>
@@ -97,7 +106,7 @@ export default async function RingkasanPage({
         {header}
         <Card>
           <CardContent>
-            <p className="text-sm text-destructive py-12 text-center">Gagal memuat ringkasan: {message}</p>
+            <p role="alert" className="text-sm text-danger-text py-12 text-center">Gagal memuat ringkasan: {message}</p>
           </CardContent>
         </Card>
       </div>
@@ -131,26 +140,28 @@ export default async function RingkasanPage({
         />
         <KpiTile
           label="Rata-rata penyelesaian"
-          value={formatHours(kpi.avg_resolution_hours)}
+          value={formatHoursValue(kpi.avg_resolution_hours)}
+          unit={kpi.avg_resolution_hours === null ? undefined : "jam"}
           hint="Dari dilaporkan hingga ditutup"
         />
         <KpiTile
           label="Aduan selesai"
-          value={`${kpi.closed_pct.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`}
+          value={kpi.closed_pct.toLocaleString("id-ID", { maximumFractionDigits: 1 })}
+          unit="%"
           hint={`${kpi.closed_count} dari ${kpi.total_complaints} aduan berstatus Selesai`}
         />
       </div>
 
       <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Rentang waktu grafik">
-        <span className="text-xs text-muted-foreground">Rentang grafik:</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Rentang grafik</span>
         {TREND_RANGES.map((d) => (
           <Link
             key={d}
             href={`/ringkasan?days=${d}`}
             aria-current={d === days ? "true" : undefined}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs",
-              d === days ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"
+              "inline-flex min-h-9 items-center rounded-md border px-3 font-mono text-xs transition-colors duration-150",
+              d === days ? "bg-primary text-primary-foreground border-primary font-semibold" : "bg-surface hover:bg-muted"
             )}
           >
             {d} hari
@@ -162,7 +173,7 @@ export default async function RingkasanPage({
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">
-              Tren aduan per kategori · {days} hari ({data.trend.granularity})
+              Tren aduan per kategori · <span className="font-mono">{days}</span> hari ({data.trend.granularity})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -171,7 +182,7 @@ export default async function RingkasanPage({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Sebaran per kecamatan · {days} hari</CardTitle>
+            <CardTitle className="text-base">Sebaran per kecamatan · <span className="font-mono">{days}</span> hari</CardTitle>
           </CardHeader>
           <CardContent>
             <KecamatanBarChart regions={data.regions} />
@@ -181,14 +192,14 @@ export default async function RingkasanPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Peringatan dini aktif ({alerts.length})</CardTitle>
+          <CardTitle className="text-base">Peringatan dini aktif <span className="font-mono text-muted-foreground">{alerts.length}</span></CardTitle>
         </CardHeader>
         <CardContent>
           {alertsError ? (
-            <p className="text-sm text-destructive py-6 text-center">Gagal memuat alert: {alertsError}</p>
+            <p role="alert" className="text-sm text-danger-text py-6 text-center">Gagal memuat alert: {alertsError}</p>
           ) : alerts.length === 0 ? (
             <div className="flex items-center gap-3 py-6 justify-center text-sm text-muted-foreground">
-              <Bell className="size-5" />
+              <Bell className="size-5" aria-hidden />
               Tidak ada lonjakan aduan yang aktif.
             </div>
           ) : (
@@ -225,17 +236,17 @@ export default async function RingkasanPage({
               <TableBody>
                 {data.opdRanking.map((r) => (
                   <TableRow key={r.opd_id}>
-                    <TableCell className="tabular-nums">{r.rank}</TableCell>
+                    <TableCell className="font-mono">{r.rank}</TableCell>
                     <TableCell>
                       <span className="font-medium">{r.short_name}</span>
                       <span className="text-muted-foreground text-xs ml-1.5 hidden sm:inline">{r.name}</span>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{r.total}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.active}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell className="text-right font-mono">{r.total}</TableCell>
+                    <TableCell className="text-right font-mono">{r.active}</TableCell>
+                    <TableCell className="text-right font-mono">
                       {r.closed_pct.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatHours(r.avg_resolution_hours)}</TableCell>
+                    <TableCell className="text-right font-mono">{formatHours(r.avg_resolution_hours)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

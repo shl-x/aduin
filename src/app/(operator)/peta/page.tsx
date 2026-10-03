@@ -4,6 +4,7 @@
  * Supabase lalu diteruskan ke PetaClient (Client Component) yang me-render
  * Leaflet lewat dynamic import ssr:false.
  */
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/client";
 import { PetaClient } from "@/components/peta/peta-client";
@@ -122,12 +123,11 @@ export default async function PetaPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Peta Hotspot</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Visualisasi sebaran dan kluster aduan di wilayah.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Operator · Pemetaan"
+        title="Peta Hotspot"
+        description="Visualisasi sebaran dan kluster aduan di wilayah."
+      />
 
       <PetaClient complaints={complaints} kecamatanStats={kecamatanStats} clustersById={clustersById} />
     </div>

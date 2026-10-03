@@ -58,7 +58,6 @@ export function TaskStatusControl({
     <div className="space-y-1">
       <Button
         type="button"
-        size="sm"
         variant={next === "selesai" ? "default" : "outline"}
         onClick={handleClick}
         disabled={loading || waiting}
@@ -67,7 +66,7 @@ export function TaskStatusControl({
         {loading && <Loader2 className="animate-spin" />}
         {waiting ? "Menunggu prasyarat" : loading ? "Menyimpan…" : label}
       </Button>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
     </div>
   );
 }

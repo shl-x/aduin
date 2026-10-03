@@ -45,12 +45,12 @@ export function CheckNowButton() {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button type="button" size="sm" onClick={handleClick} disabled={loading}>
+      <Button type="button" onClick={handleClick} disabled={loading}>
         {loading ? <Loader2 className="animate-spin" /> : <Search />}
         {loading ? "Memeriksa…" : "Periksa Sekarang"}
       </Button>
       {message && (
-        <p className={message.error ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+        <p className={message.error ? "text-xs text-danger-text" : "text-xs text-muted-foreground"}>
           {message.text}
         </p>
       )}
@@ -87,7 +87,7 @@ export function RetrySummaryButton({ alertId }: { alertId: string }) {
         {loading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
         {loading ? "Membuat ringkasan…" : "Coba Lagi"}
       </Button>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
     </div>
   );
 }
@@ -143,7 +143,7 @@ export function DismissAlertForm({ alertId }: { alertId: string }) {
         className="min-h-16"
         disabled={loading}
       />
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
       <div className="flex gap-2">
         <Button type="button" size="sm" variant="destructive" onClick={handleSubmit} disabled={loading}>
           {loading && <Loader2 className="animate-spin" />}

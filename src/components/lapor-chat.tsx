@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { AduinMark } from "@/components/brand/AduinLogo";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 interface RegionOption {
@@ -60,7 +61,7 @@ const HANDLING_PATH_LABELS: Record<string, string> = {
 function formatTriageMessage(t: TriageSummary): string {
   const pathLabel = HANDLING_PATH_LABELS[t.handlingPath] ?? t.handlingPath;
   return (
-    `Aduan Anda sudah tercatat dan diproses AI ✅\n\n` +
+    `Aduan Anda sudah tercatat dan diproses AI.\n\n` +
     `Kategori: ${t.categoryLabel}\n` +
     `OPD tujuan: ${t.opdShortName}\n` +
     `Urgensi: ${t.urgency}/5 · Dampak: ${t.impact}\n` +
@@ -176,12 +177,30 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-h-[720px]">
+    <div className="flex flex-col h-[calc(100dvh-12rem)] min-h-[480px] max-h-[720px]">
+      {/* Kepala simulator WhatsApp */}
+      <div className="flex items-center gap-3 rounded-t-lg bg-console px-4 py-3 text-console-ink">
+        <span className="flex size-9 items-center justify-center rounded-full bg-surface">
+          <AduinMark size={26} title="" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-tight">Aduin</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-console-muted">
+            Simulator WhatsApp · daring
+          </p>
+        </div>
+      </div>
+
       {/* Riwayat chat */}
-      <div className="flex-1 overflow-y-auto rounded-t-xl border border-b-0 bg-muted/20 p-4 space-y-3">
+      <div
+        className="flex-1 overflow-y-auto border-x bg-muted p-4 space-y-3"
+        role="log"
+        aria-live="polite"
+        aria-label="Percakapan dengan Aduin"
+      >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground">
-            <MessageSquare size={40} strokeWidth={1.2} />
+            <MessageSquare size={40} strokeWidth={1.4} aria-hidden />
             <div>
               <p className="font-medium text-foreground">Belum ada percakapan</p>
               <p className="text-sm mt-1">Ketik aduan Anda di bawah untuk memulai.</p>
@@ -189,17 +208,18 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
           </div>
         ) : (
           messages.map((msg) => (
-            <div key={msg.id} className={cn("flex", msg.from === "warga" ? "justify-end" : "justify-start")}>
+            <div key={msg.id} className={cn("flex items-end gap-2", msg.from === "warga" ? "justify-end" : "justify-start")}>
+              {msg.from === "bot" && <AduinMark size={28} title="" className="mb-0.5" />}
               <div
                 className={cn(
-                  "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-line",
+                  "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-line leading-relaxed",
                   msg.from === "warga"
                     ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-card ring-1 ring-foreground/10 rounded-bl-sm"
+                    : "bg-card border rounded-bl-sm"
                 )}
               >
                 {msg.from === "bot" && (
-                  <p className="text-xs font-semibold text-muted-foreground mb-0.5">Aduin</p>
+                  <p className="text-xs font-semibold text-primary mb-0.5">Aduin</p>
                 )}
                 {msg.text}
               </div>
@@ -207,8 +227,9 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
           ))
         )}
         {sending && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-sm bg-card ring-1 ring-foreground/10 px-3.5 py-2 text-sm text-muted-foreground animate-pulse">
+          <div className="flex items-end gap-2 justify-start">
+            <AduinMark size={28} title="" className="mb-0.5" />
+            <div className="rounded-2xl rounded-bl-sm bg-card border px-3.5 py-2 text-sm text-muted-foreground animate-pulse">
               Aduin sedang memproses…
             </div>
           </div>
@@ -216,12 +237,12 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
       </div>
 
       {/* Area input */}
-      <div className="rounded-b-xl border bg-card p-3 space-y-2.5">
-        {error && <p className="text-xs text-destructive">{error}</p>}
+      <div className="rounded-b-lg border bg-card p-3 space-y-2.5">
+        {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
 
         <div className="flex flex-wrap items-center gap-2">
           <Select value={regionId} onValueChange={(v) => setRegionId(v ?? undefined)}>
-            <SelectTrigger className="w-full sm:w-64">
+            <SelectTrigger className="w-full sm:w-64" aria-label="Lokasi aduan">
               <SelectValue>
                 {(v: string | null) =>
                   regions.find((r) => r.id === v)?.label ?? "Pilih desa/kecamatan (opsional)"
@@ -247,18 +268,22 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
           <Button
             type="button"
             variant="outline"
-            size="sm"
             disabled={uploadingPhoto}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Paperclip size={14} />
+            <Paperclip size={14} aria-hidden />
             {uploadingPhoto ? "Mengunggah…" : photoFile ? "Ganti foto" : "Lampirkan foto"}
           </Button>
           {photoFile && !uploadingPhoto && (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              {photoFile.name}
-              <button type="button" onClick={removePhoto} className="hover:text-destructive">
-                <X size={12} />
+              <span className="max-w-[12rem] truncate font-mono">{photoFile.name}</span>
+              <button
+                type="button"
+                onClick={removePhoto}
+                aria-label="Hapus foto lampiran"
+                className="inline-flex size-8 items-center justify-center rounded-md hover:bg-muted hover:text-danger-text"
+              >
+                <X size={14} aria-hidden />
               </button>
             </span>
           )}
@@ -275,11 +300,12 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
               }
             }}
             placeholder="Tulis aduan Anda di sini…"
+            aria-label="Tulis aduan"
             className="min-h-10 resize-none"
             disabled={sending}
           />
-          <Button type="button" onClick={handleSend} disabled={sending || !draftText.trim()}>
-            <Send size={14} />
+          <Button type="button" variant="action" onClick={handleSend} disabled={sending || !draftText.trim()}>
+            <Send size={14} aria-hidden />
             Kirim
           </Button>
         </div>

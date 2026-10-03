@@ -9,7 +9,7 @@ export default function TugasError({ error, reset }: { error: Error; reset: () =
     <Card>
       <CardContent>
         <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-          <AlertTriangle size={40} strokeWidth={1.2} className="text-destructive" />
+          <AlertTriangle size={40} strokeWidth={1.2} className="text-danger-text" />
           <div>
             <p className="font-medium">Gagal memuat daftar tugas</p>
             <p className="text-sm text-muted-foreground mt-1">{error.message}</p>

@@ -32,7 +32,8 @@ const SERIES = CATEGORIES.map((c, i) => ({
   color: `var(--series-${i + 1})`,
 }));
 
-const AXIS_TICK = { fill: "var(--muted-foreground)", fontSize: 11 };
+// Warna dari token tema (globals.css) agar grafik ikut berganti mode terang/gelap.
+const AXIS_TICK = { fill: "var(--muted)", fontSize: 11, fontFamily: "var(--font-plex-mono)" };
 
 function Swatch({ color }: { color: string }) {
   return <span className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: color }} aria-hidden />;
@@ -55,7 +56,7 @@ function TrendTooltip({ active, payload, label }: TooltipContentProps<ValueType,
             <li key={String(p.dataKey)} className="flex items-center gap-1.5">
               <Swatch color={String(p.color)} />
               <span className="text-muted-foreground">{p.name}</span>
-              <span className="ml-auto pl-3 tabular-nums font-medium">{p.value}</span>
+              <span className="ml-auto pl-3 font-mono font-medium">{p.value}</span>
             </li>
           ))}
         </ul>
@@ -91,17 +92,17 @@ export function CategoryTrendChart({ trend }: { trend: Trend }) {
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-            <CartesianGrid vertical={false} stroke="var(--border)" />
+            <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis
               dataKey="label"
               tick={AXIS_TICK}
               tickLine={false}
-              axisLine={{ stroke: "var(--border)" }}
+              axisLine={{ stroke: "var(--line)" }}
               interval="preserveStartEnd"
               minTickGap={16}
             />
             <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} width={40} />
-            <Tooltip content={TrendTooltip} cursor={{ fill: "var(--muted)", opacity: 0.6 }} />
+            <Tooltip content={TrendTooltip} cursor={{ fill: "var(--surface-2)", opacity: 0.8 }} />
             {SERIES.map((s) => (
               <Bar
                 key={s.slug}
@@ -109,7 +110,7 @@ export function CategoryTrendChart({ trend }: { trend: Trend }) {
                 name={s.label}
                 stackId="kategori"
                 fill={s.color}
-                stroke="var(--card)"
+                stroke="var(--surface)"
                 strokeWidth={1}
                 radius={s.slug === lastSlug ? [4, 4, 0, 0] : 0}
                 maxBarSize={36}
@@ -120,11 +121,11 @@ export function CategoryTrendChart({ trend }: { trend: Trend }) {
       </div>
 
       <details className="text-xs">
-        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+        <summary className="inline-flex min-h-9 cursor-pointer items-center font-medium text-primary hover:underline">
           Lihat sebagai tabel
         </summary>
         <div className="mt-2 overflow-x-auto">
-          <table className="w-full border-collapse tabular-nums">
+          <table className="w-full border-collapse">
             <thead>
               <tr className="border-b text-muted-foreground">
                 <th className="py-1 pr-3 text-left font-medium">Periode</th>
@@ -136,7 +137,7 @@ export function CategoryTrendChart({ trend }: { trend: Trend }) {
                 <th className="py-1 pl-2 text-right font-medium">Total</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="font-mono">
               {trend.points.map((p) => (
                 <tr key={p.label} className="border-b last:border-0">
                   <td className="py-1 pr-3 whitespace-nowrap">{p.label}</td>
@@ -182,14 +183,14 @@ export function KecamatanBarChart({ regions }: { regions: RegionCount[] }) {
           <YAxis
             type="category"
             dataKey="kecamatan"
-            tick={{ ...AXIS_TICK, fill: "var(--foreground)" }}
+            tick={{ ...AXIS_TICK, fill: "var(--ink)", fontFamily: "var(--font-jakarta)" }}
             tickLine={false}
             axisLine={false}
             width={96}
           />
-          <Tooltip content={RegionTooltip} cursor={{ fill: "var(--muted)", opacity: 0.6 }} />
+          <Tooltip content={RegionTooltip} cursor={{ fill: "var(--surface-2)", opacity: 0.8 }} />
           <Bar dataKey="total" name="Aduan" fill="var(--series-1)" radius={[0, 4, 4, 0]} maxBarSize={24}>
-            <LabelList dataKey="total" position="right" fill="var(--muted-foreground)" fontSize={11} />
+            <LabelList dataKey="total" position="right" fill="var(--muted)" fontSize={11} fontFamily="var(--font-plex-mono)" />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

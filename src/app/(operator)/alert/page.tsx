@@ -9,7 +9,8 @@
 import type { Metadata } from "next";
 import { Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
+import { Stamp } from "@/components/status-stamp";
 import { AlertCard } from "@/components/alert-card";
 import { CheckNowButton } from "@/components/alert-actions";
 import { createClient } from "@/lib/supabase/client";
@@ -34,20 +35,19 @@ export default async function AlertPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Peringatan Dini</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Deteksi lonjakan aduan per kategori dan wilayah (z-score 24 jam vs baseline 14 hari).
-          </p>
-        </div>
-        <div className="flex items-start gap-3">
-          <Badge variant={alerts.length > 0 ? "destructive" : "secondary"}>
-            {alerts.length} alert aktif
-          </Badge>
-          {isOperator && <CheckNowButton />}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Operator · Early warning"
+        title="Peringatan Dini"
+        description="Deteksi lonjakan aduan per kategori dan wilayah (z-score 24 jam vs baseline 14 hari)."
+        actions={
+          <>
+            <Stamp tone={alerts.length > 0 ? "accent" : "muted"}>
+              <span className="font-mono">{alerts.length}</span> alert aktif
+            </Stamp>
+            {isOperator && <CheckNowButton />}
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -59,10 +59,10 @@ export default async function AlertPage() {
               Halaman ini khusus operator dan pimpinan.
             </p>
           ) : loadError ? (
-            <p className="text-sm text-destructive py-8 text-center">Gagal memuat alert: {loadError}</p>
+            <p role="alert" className="text-sm text-danger-text py-8 text-center">Gagal memuat alert: {loadError}</p>
           ) : alerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center gap-4 text-muted-foreground">
-              <Bell size={48} strokeWidth={1.2} />
+              <Bell size={40} strokeWidth={1.4} aria-hidden />
               <div>
                 <p className="font-medium text-foreground">Tidak ada peringatan aktif</p>
                 <p className="text-sm mt-1">

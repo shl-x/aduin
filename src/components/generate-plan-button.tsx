@@ -47,27 +47,27 @@ export function GeneratePlanButton({
 
   return (
     <div className="space-y-2">
-      <Button type="button" size="sm" onClick={handleClick} disabled={loading}>
+      <Button type="button" variant="action" onClick={handleClick} disabled={loading}>
         {loading ? (
           <>
-            <Loader2 className="animate-spin" />
+            <Loader2 className="animate-spin" aria-hidden />
             Menyusun rencana…
           </>
         ) : (
           <>
-            <Sparkles />
+            <Sparkles aria-hidden />
             {hasAiPlan ? "Buat Ulang Rencana Koordinasi" : "Buat Rencana Koordinasi"}
           </>
         )}
       </Button>
       {loading && (
-        <p className="text-xs text-muted-foreground">
+        <p role="status" className="text-xs text-muted-foreground">
           AI sedang menyusun sub-tugas lintas OPD. Proses ini bisa memakan waktu hingga 1 menit.
         </p>
       )}
       {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs">
-          <p className="text-destructive font-medium">{error.message}</p>
+        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs">
+          <p className="text-danger-text font-medium">{error.message}</p>
           <p className="text-muted-foreground mt-1">Rencana sebelumnya tidak berubah.</p>
           {error.detail && (
             <details className="mt-1 text-muted-foreground">

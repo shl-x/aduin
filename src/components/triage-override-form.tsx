@@ -86,7 +86,7 @@ export function TriageOverrideForm({ complaintId }: { complaintId: string }) {
             setValue("");
           }}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-full sm:w-44" aria-label="Field yang dikoreksi">
             <SelectValue>
               {(v: string | null) => FIELD_OPTIONS.find((f) => f.value === v)?.label ?? "Pilih field"}
             </SelectValue>
@@ -101,7 +101,7 @@ export function TriageOverrideForm({ complaintId }: { complaintId: string }) {
         </Select>
 
         <Select value={value} onValueChange={(v) => setValue(v ?? "")}>
-          <SelectTrigger className="w-56">
+          <SelectTrigger className="w-full sm:w-56" aria-label="Nilai baru">
             <SelectValue>
               {(v: string | null) => valueOptions.find((o) => o.value === v)?.label ?? "Pilih nilai baru"}
             </SelectValue>
@@ -123,7 +123,7 @@ export function TriageOverrideForm({ complaintId }: { complaintId: string }) {
         className="min-h-16"
       />
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
 
       <Button type="button" size="sm" onClick={handleSubmit} disabled={submitting}>
         {submitting ? "Menyimpan…" : "Simpan Override"}

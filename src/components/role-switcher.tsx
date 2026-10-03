@@ -71,33 +71,43 @@ export function RoleSwitcher({ currentRole }: RoleSwitcherProps) {
   }
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
-        Demo:
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
+      <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground whitespace-nowrap">
+        Mode demo
       </span>
-      {DEMO_ROLES.map((demo) => {
-        const isActive = currentRole === demo.role &&
-          // untuk petugas_opd ada 2 akun; biarkan keduanya aktif jika role cocok
-          true;
-        return (
-          <Button
-            key={demo.key}
-            variant={isActive ? "default" : "outline"}
-            size="sm"
-            disabled={loading !== null}
-            onClick={() => switchTo(demo.key)}
-            className={cn("h-7 px-2.5 text-xs", isActive && "font-semibold")}
-          >
-            {loading === demo.key ? (
-              <span className="animate-pulse">Masuk…</span>
-            ) : (
-              demo.label
-            )}
-          </Button>
-        );
-      })}
+      <div
+        role="group"
+        aria-label="Masuk sebagai akun demo"
+        className="flex w-full min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg border bg-muted p-0.5 sm:w-auto"
+      >
+        {DEMO_ROLES.map((demo) => {
+          const isActive = currentRole === demo.role &&
+            // untuk petugas_opd ada 2 akun; biarkan keduanya aktif jika role cocok
+            true;
+          return (
+            <Button
+              key={demo.key}
+              variant={isActive ? "default" : "ghost"}
+              size="sm"
+              disabled={loading !== null}
+              aria-pressed={isActive}
+              onClick={() => switchTo(demo.key)}
+              className={cn(
+                "h-8 flex-1 px-1.5 text-xs sm:flex-none sm:px-2.5",
+                isActive ? "font-semibold" : "text-muted-foreground hover:bg-surface"
+              )}
+            >
+              {loading === demo.key ? (
+                <span className="animate-pulse">Masuk…</span>
+              ) : (
+                demo.label
+              )}
+            </Button>
+          );
+        })}
+      </div>
       {error && (
-        <span className="text-xs text-destructive ml-1">{error}</span>
+        <span role="alert" className="text-xs text-danger-text">{error}</span>
       )}
     </div>
   );

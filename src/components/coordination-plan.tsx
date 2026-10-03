@@ -9,7 +9,8 @@
 import { ArrowRight, Clock, ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TaskStatusControl } from "@/components/task-status-control";
-import { TASK_STATUS_BADGE_VARIANT, TASK_STATUS_LABELS } from "@/lib/constants/tasks";
+import { TaskStatusStamp } from "@/components/status-stamp";
+import { TASK_STATUS_LABELS } from "@/lib/constants/tasks";
 import type { CoordinationPlanView } from "@/lib/services/coordination";
 
 export function CoordinationPlan({
@@ -23,7 +24,7 @@ export function CoordinationPlan({
   if (!plan || plan.tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center gap-3 text-muted-foreground">
-        <ListChecks size={40} strokeWidth={1.2} />
+        <ListChecks size={40} strokeWidth={1.4} aria-hidden />
         <div>
           <p className="font-medium text-foreground">Belum ada rencana koordinasi</p>
           <p className="text-sm mt-1">Rencana dibuat otomatis setelah aduan berhasil ditriase.</p>
@@ -39,18 +40,20 @@ export function CoordinationPlan({
           {plan.plan_type === "ai_generated" ? "Rencana AI" : "Rencana Sederhana"}
         </Badge>
         <span className="text-xs text-muted-foreground">
-          {plan.tasks.length} sub-tugas · dibuat{" "}
-          {new Date(plan.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
+          <span className="font-mono">{plan.tasks.length}</span> sub-tugas · dibuat{" "}
+          <span className="font-mono">
+            {new Date(plan.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
+          </span>
         </span>
       </div>
       {plan.summary && <p className="text-sm">{plan.summary}</p>}
 
       <ol className="space-y-3">
         {plan.tasks.map((task) => (
-          <li key={task.id} className="rounded-lg border p-3 space-y-2">
+          <li key={task.id} className="rounded-md border bg-surface p-3 space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted font-mono text-xs font-semibold" aria-label={`Langkah ${task.sequence}`}>
                   {task.sequence}
                 </span>
                 <div className="min-w-0">
@@ -63,13 +66,11 @@ export function CoordinationPlan({
               <div className="flex items-center gap-1.5 shrink-0">
                 {task.waiting && (
                   <Badge variant="outline">
-                    <Clock />
+                    <Clock aria-hidden />
                     Menunggu
                   </Badge>
                 )}
-                <Badge variant={TASK_STATUS_BADGE_VARIANT[task.status]}>
-                  {TASK_STATUS_LABELS[task.status]}
-                </Badge>
+                <TaskStatusStamp status={task.status} size="sm" />
               </div>
             </div>
 
@@ -77,11 +78,11 @@ export function CoordinationPlan({
 
             {task.depends_on.length > 0 && (
               <p className="text-xs text-muted-foreground pl-9 flex items-center gap-1 flex-wrap">
-                <ArrowRight className="size-3" />
+                <ArrowRight className="size-3" aria-hidden />
                 Bergantung pada:{" "}
                 {task.depends_on.map((d, i) => (
                   <span key={d.id}>
-                    #{d.sequence} {d.title} ({TASK_STATUS_LABELS[d.status]})
+                    <span className="font-mono">#{d.sequence}</span> {d.title} ({TASK_STATUS_LABELS[d.status]})
                     {i < task.depends_on.length - 1 ? ", " : ""}
                   </span>
                 ))}

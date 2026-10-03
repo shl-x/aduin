@@ -27,7 +27,9 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { getCoordinationPlan, type CoordinationPlanView } from "@/lib/services/coordination";
 import { getVerificationHistory, type VerificationHistory } from "@/lib/services/verification";
 import { CATEGORIES } from "@/lib/constants/categories";
-import { STATUS_LABELS, STATUS_BADGE_VARIANT, type ComplaintStatus } from "@/lib/constants/status";
+import { StatusStamp } from "@/components/status-stamp";
+import { UrgencyBar } from "@/components/urgency-bar";
+import { Eyebrow, ticketId } from "@/components/page-header";
 
 export const metadata: Metadata = { title: "Detail Aduan" };
 
@@ -102,26 +104,28 @@ export default async function AduanDetailPage({
     CATEGORIES.find((c) => c.slug === complaint.effective_category)?.label ??
     complaint.effective_category ??
     "Belum ditriase";
-  const statusKey = complaint.status as ComplaintStatus;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant={STATUS_BADGE_VARIANT[statusKey] ?? "outline"}>
-              {STATUS_LABELS[statusKey] ?? complaint.status}
-            </Badge>
-            {overrides && overrides.length > 0 && <Badge variant="secondary">Override</Badge>}
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight mt-2">{categoryLabel}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
+        <div className="min-w-0">
+          <Eyebrow>
+            Aduan <span className="text-ink">{ticketId(id)}</span>
+          </Eyebrow>
+          <h1 className="text-2xl font-bold tracking-tight mt-1">{categoryLabel}</h1>
           <p className="text-muted-foreground text-sm mt-1">
             {region?.name ?? "Wilayah tidak diketahui"} ·{" "}
-            {new Date(complaint.reported_at).toLocaleString("id-ID", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
+            <time dateTime={complaint.reported_at} className="font-mono text-xs">
+              {new Date(complaint.reported_at).toLocaleString("id-ID", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </time>
           </p>
+        </div>
+        <div className="flex flex-col items-end gap-2 pt-1">
+          <StatusStamp status={complaint.status} size="lg" tilted />
+          {overrides && overrides.length > 0 && <Badge variant="outline">Override operator</Badge>}
         </div>
       </div>
 
@@ -132,7 +136,7 @@ export default async function AduanDetailPage({
         <CardContent className="space-y-3">
           <p className="text-sm whitespace-pre-line">{complaint.text}</p>
           {complaint.photo_before_url && (
-            <div className="relative w-full max-w-sm aspect-video rounded-lg overflow-hidden ring-1 ring-foreground/10">
+            <div className="relative w-full max-w-sm aspect-video rounded-md overflow-hidden border">
               <Image
                 src={complaint.photo_before_url}
                 alt="Foto aduan"
@@ -157,19 +161,19 @@ export default async function AduanDetailPage({
                 : "Belum ada hasil triase."}
             </p>
           ) : (
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <dl className="grid grid-cols-[minmax(0,9rem)_1fr] gap-x-4 gap-y-2.5 text-sm">
               <dt className="text-muted-foreground">Kategori</dt>
               <dd>{CATEGORIES.find((c) => c.slug === triage.category)?.label ?? triage.category}</dd>
               <dt className="text-muted-foreground">OPD</dt>
               <dd>{opd ? `${opd.short_name} — ${opd.name}` : "—"}</dd>
               <dt className="text-muted-foreground">Urgensi</dt>
-              <dd>{triage.urgency}/5</dd>
+              <dd><UrgencyBar value={triage.urgency} size="md" /></dd>
               <dt className="text-muted-foreground">Dampak</dt>
               <dd className="capitalize">{triage.impact}</dd>
               <dt className="text-muted-foreground">Jalur Penanganan</dt>
               <dd>{HANDLING_PATH_LABELS[triage.handling_path] ?? triage.handling_path}</dd>
-              <dt className="text-muted-foreground col-span-2 mt-1">Alasan</dt>
-              <dd className="col-span-2 text-foreground">{triage.reason}</dd>
+              <dt className="col-span-2 mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Alasan AI</dt>
+              <dd className="col-span-2 rounded-md bg-muted px-3 py-2.5 leading-relaxed text-foreground">{triage.reason}</dd>
             </dl>
           )}
         </CardContent>
@@ -181,7 +185,7 @@ export default async function AduanDetailPage({
         </CardHeader>
         <CardContent className="space-y-4">
           {planError ? (
-            <p className="text-sm text-destructive">Gagal memuat rencana koordinasi: {planError}</p>
+            <p role="alert" className="text-sm text-danger-text">Gagal memuat rencana koordinasi: {planError}</p>
           ) : (
             <CoordinationPlan
               plan={plan}
@@ -238,7 +242,7 @@ export default async function AduanDetailPage({
                   {o.new_value}
                 </p>
                 {o.note && <p className="text-muted-foreground text-xs mt-0.5">{o.note}</p>}
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground font-mono text-xs">
                   {new Date(o.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
                 </p>
                 {i < overrides.length - 1 && <Separator className="mt-3" />}

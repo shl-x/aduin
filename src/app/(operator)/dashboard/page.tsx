@@ -8,7 +8,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LayoutDashboard, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -22,7 +21,9 @@ import { ResetDemoButton } from "@/components/reset-demo-button";
 import { getSessionRole } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/client";
 import { CATEGORIES } from "@/lib/constants/categories";
-import { STATUS_LABELS, STATUS_BADGE_VARIANT, type ComplaintStatus } from "@/lib/constants/status";
+import { PageHeader, ticketId } from "@/components/page-header";
+import { StatusStamp } from "@/components/status-stamp";
+import { UrgencyBar } from "@/components/urgency-bar";
 
 export const metadata: Metadata = { title: "Daftar Aduan" };
 
@@ -75,43 +76,44 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Daftar Aduan</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Kelola dan pantau seluruh aduan yang masuk.
-          </p>
-        </div>
-        {role === "operator" && <ResetDemoButton />}
-      </div>
+      <PageHeader
+        eyebrow="Operator · Command center"
+        title="Daftar Aduan"
+        description="Kelola dan pantau seluruh aduan yang masuk."
+        actions={role === "operator" ? <ResetDemoButton /> : undefined}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <DashboardFilters />
         {region && (
           <Link
             href={`/dashboard?${clearRegionParams.toString()}`}
-            className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs hover:bg-muted"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-md border bg-surface px-3 text-xs font-medium hover:bg-muted"
+            aria-label={`Hapus filter wilayah ${regionRow?.name ?? ""}`}
           >
             Wilayah: {regionRow?.name ?? "tidak dikenal"}
-            <X className="size-3" />
+            <X className="size-3.5" aria-hidden />
           </Link>
         )}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            Aduan {complaints.length > 0 ? `(${complaints.length})` : ""}
+          <CardTitle className="flex items-baseline gap-2 text-base">
+            Aduan
+            {complaints.length > 0 && (
+              <span className="font-mono text-sm font-medium text-muted-foreground">{complaints.length}</span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {error ? (
-            <p className="text-sm text-destructive py-8 text-center">
+            <p role="alert" className="text-sm text-danger-text py-8 text-center">
               Gagal memuat data: {error.message}
             </p>
           ) : complaints.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center gap-4 text-muted-foreground">
-              <LayoutDashboard size={48} strokeWidth={1.2} />
+              <LayoutDashboard size={40} strokeWidth={1.4} aria-hidden />
               <div>
                 <p className="font-medium text-foreground">Belum ada aduan</p>
                 <p className="text-sm mt-1">
@@ -123,6 +125,7 @@ export default async function DashboardPage({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead>OPD</TableHead>
@@ -136,30 +139,36 @@ export default async function DashboardPage({
                   const categoryLabel =
                     CATEGORIES.find((cat) => cat.slug === c.effective_category)?.label ?? "—";
                   const urgency = latestUrgency(c.triage_results);
-                  const statusKey = c.status as ComplaintStatus;
                   return (
                     <TableRow key={c.id}>
                       <TableCell>
-                        <Link href={`/aduan/${c.id}`} className="contents">
-                          <Badge variant={STATUS_BADGE_VARIANT[statusKey] ?? "outline"}>
-                            {STATUS_LABELS[statusKey] ?? c.status}
-                          </Badge>
+                        <Link
+                          href={`/aduan/${c.id}`}
+                          className="font-mono text-xs font-medium text-primary hover:underline"
+                          title={c.text}
+                        >
+                          {ticketId(c.id)}
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/aduan/${c.id}`}>{categoryLabel}</Link>
+                        <Link href={`/aduan/${c.id}`} className="inline-flex" tabIndex={-1}>
+                          <StatusStamp status={c.status} size="sm" />
+                        </Link>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/aduan/${c.id}`}>{c.opd?.short_name ?? "—"}</Link>
+                        <Link href={`/aduan/${c.id}`} tabIndex={-1}>{categoryLabel}</Link>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/aduan/${c.id}`}>{urgency ?? "—"}</Link>
+                        <Link href={`/aduan/${c.id}`} tabIndex={-1}>{c.opd?.short_name ?? "—"}</Link>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/aduan/${c.id}`}>{c.region?.name ?? "—"}</Link>
+                        <Link href={`/aduan/${c.id}`} tabIndex={-1}><UrgencyBar value={urgency} /></Link>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/aduan/${c.id}`}>
+                        <Link href={`/aduan/${c.id}`} tabIndex={-1}>{c.region?.name ?? "—"}</Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/aduan/${c.id}`} className="font-mono text-xs text-muted-foreground" tabIndex={-1}>
                           {new Date(c.reported_at).toLocaleDateString("id-ID", {
                             day: "2-digit",
                             month: "short",

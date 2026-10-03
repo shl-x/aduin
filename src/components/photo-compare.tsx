@@ -11,15 +11,15 @@ import { ImageOff } from "lucide-react";
 function PhotoSlot({ label, url }: { label: string; url: string | null }) {
   return (
     <figure className="space-y-1">
-      <figcaption className="text-xs font-medium text-muted-foreground">{label}</figcaption>
-      <div className="relative w-full aspect-video rounded-lg overflow-hidden ring-1 ring-foreground/10 bg-muted">
+      <figcaption className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{label}</figcaption>
+      <div className="relative w-full aspect-video rounded-md overflow-hidden border bg-muted">
         {url ? (
           <a href={url} target="_blank" rel="noopener noreferrer">
             <Image src={url} alt={`Foto ${label.toLowerCase()}`} fill className="object-cover" unoptimized />
           </a>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-1 text-muted-foreground">
-            <ImageOff className="size-5" />
+            <ImageOff className="size-5" aria-hidden />
             <span className="text-xs">Tidak ada foto</span>
           </div>
         )}

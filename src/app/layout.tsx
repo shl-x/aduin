@@ -7,19 +7,32 @@
  * lalu meneruskannya sebagai prop ke SidebarNav dan RoleSwitcher.
  * Dengan demikian server dan client merender markup yang identik
  * dan tidak ada hydration mismatch.
+ *
+ * Tema (terang/gelap) dikelola next-themes; suppressHydrationWarning di <html>
+ * karena next-themes memasang class "dark" sebelum React hydrate.
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist } from "next/font/google";
+import { IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { SidebarNav } from "@/components/sidebar-nav";
+import { MobileNav, SidebarNav } from "@/components/sidebar-nav";
 import { RoleSwitcher } from "@/components/role-switcher";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { AduinMark } from "@/components/brand/AduinLogo";
 import { getSessionRole } from "@/lib/supabase/server";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -42,25 +55,36 @@ export default async function RootLayout({
   return (
     <html
       lang="id"
-      className={`${geistSans.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${jakarta.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        {/* Header demo — hanya tampil saat NEXT_PUBLIC_DEMO_MODE=true */}
-        <header className="h-10 border-b bg-muted/40 flex items-center px-4 gap-3 shrink-0">
-          <Link
-            href="/"
-            className="text-xs font-semibold text-muted-foreground tracking-wide uppercase hover:text-foreground"
+      <body className="min-h-full bg-background text-foreground">
+        <ThemeProvider>
+          <a
+            href="#konten"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
           >
-            Aduin Demo
-          </Link>
-          <div className="ml-auto">
-            <RoleSwitcher currentRole={role} />
+            Lewati ke konten
+          </a>
+          <div className="flex min-h-screen">
+            <SidebarNav role={role} />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <header className="sticky top-0 z-40 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface/95 px-4 py-2 md:px-6">
+                <Link href="/" className="md:hidden inline-flex rounded-md" aria-label="Aduin — beranda">
+                  <AduinMark size={28} title="" />
+                </Link>
+                <ThemeToggle className="ml-auto sm:order-last sm:ml-0" />
+                <div className="order-last flex w-full min-w-0 items-center sm:order-none sm:ml-auto sm:w-auto">
+                  <RoleSwitcher currentRole={role} />
+                </div>
+              </header>
+              <MobileNav role={role} />
+              <main id="konten" tabIndex={-1} className="flex-1 p-4 md:p-6 outline-none">
+                {children}
+              </main>
+            </div>
           </div>
-        </header>
-        <div className="flex flex-1 overflow-hidden">
-          <SidebarNav role={role} />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
-        </div>
+        </ThemeProvider>
       </body>
     </html>
   );

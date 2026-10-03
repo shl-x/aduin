@@ -15,6 +15,8 @@ import Link from "next/link";
 import { ArrowRight, ClipboardList, Clock, ExternalLink, MessageSquareWarning } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusStamp, TaskStatusStamp } from "@/components/status-stamp";
+import { PageHeader, ticketId } from "@/components/page-header";
 import { TaskStatusControl } from "@/components/task-status-control";
 import { CompletionUpload } from "@/components/completion-upload";
 import { createClient } from "@/lib/supabase/client";
@@ -25,10 +27,8 @@ import {
   isPlanComplete,
   type CompletionCandidate,
 } from "@/lib/services/verification";
-import { STATUS_BADGE_VARIANT, STATUS_LABELS, type ComplaintStatus } from "@/lib/constants/status";
 import {
   TASK_STATUSES,
-  TASK_STATUS_BADGE_VARIANT,
   TASK_STATUS_LABELS,
   type TaskStatus,
 } from "@/lib/constants/tasks";
@@ -39,7 +39,7 @@ export const metadata: Metadata = { title: "Tugas Saya" };
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center gap-4 text-muted-foreground">
-      <ClipboardList size={48} strokeWidth={1.2} />
+      <ClipboardList size={40} strokeWidth={1.4} aria-hidden />
       <div>
         <p className="font-medium text-foreground">{title}</p>
         <p className="text-sm mt-1">{description}</p>
@@ -50,49 +50,52 @@ function EmptyState({ title, description }: { title: string; description: string
 
 function TaskItem({ task }: { task: OpdTaskView }) {
   return (
-    <li className="rounded-lg border p-3 space-y-2">
+    <li className="rounded-md border bg-surface p-3 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium text-sm">
-            <span className="text-muted-foreground">#{task.sequence}</span> {task.title}
+          <p className="font-semibold text-sm">
+            <span className="font-mono text-muted-foreground">#{task.sequence}</span> {task.title}
           </p>
           {task.complaint && (
             <p className="text-xs text-muted-foreground mt-0.5">
+              <span className="font-mono">{ticketId(task.complaint.id)}</span> ·{" "}
               {task.complaint.region_name ?? "Wilayah tidak diketahui"} ·{" "}
+              <span className="font-mono">
               {new Date(task.updated_at).toLocaleDateString("id-ID", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
               })}
+              </span>
             </p>
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {task.waiting && (
             <Badge variant="outline">
-              <Clock />
+              <Clock aria-hidden />
               Menunggu
             </Badge>
           )}
-          <Badge variant={TASK_STATUS_BADGE_VARIANT[task.status]}>{TASK_STATUS_LABELS[task.status]}</Badge>
+          <TaskStatusStamp status={task.status} size="sm" />
         </div>
       </div>
 
       {task.description && <p className="text-sm text-muted-foreground">{task.description}</p>}
 
       {task.complaint && (
-        <p className="text-xs border-l-2 pl-2 text-muted-foreground line-clamp-2">
+        <p className="text-xs rounded-md bg-muted px-2.5 py-2 text-muted-foreground line-clamp-2">
           Aduan: {task.complaint.text}
         </p>
       )}
 
       {task.depends_on.length > 0 && (
         <p className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
-          <ArrowRight className="size-3" />
+          <ArrowRight className="size-3" aria-hidden />
           Bergantung pada:{" "}
           {task.depends_on.map((d, i) => (
             <span key={d.id}>
-              #{d.sequence} {d.title} ({[d.opd_short_name, TASK_STATUS_LABELS[d.status]].filter(Boolean).join(" — ")})
+              <span className="font-mono">#{d.sequence}</span> {d.title} ({[d.opd_short_name, TASK_STATUS_LABELS[d.status]].filter(Boolean).join(" — ")})
               {i < task.depends_on.length - 1 ? ", " : ""}
             </span>
           ))}
@@ -104,10 +107,10 @@ function TaskItem({ task }: { task: OpdTaskView }) {
         {task.complaint && (
           <Link
             href={`/aduan/${task.complaint.id}`}
-            className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
+            className="text-sm font-medium text-primary inline-flex min-h-9 items-center gap-1 hover:underline"
           >
             Lihat detail aduan
-            <ExternalLink className="size-3" />
+            <ExternalLink className="size-3.5" aria-hidden />
           </Link>
         )}
       </div>
@@ -116,26 +119,23 @@ function TaskItem({ task }: { task: OpdTaskView }) {
 }
 
 function CompletionItem({ item }: { item: CompletionCandidate }) {
-  const statusKey = item.status as ComplaintStatus;
   const complete = isPlanComplete(item.progress);
   return (
-    <li className="rounded-lg border p-3 space-y-2">
+    <li className="rounded-md border bg-surface p-3 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm line-clamp-2">{item.text}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {item.region_name ?? "Wilayah tidak diketahui"} · {item.progress.done}/{item.progress.total} tugas
+            {item.region_name ?? "Wilayah tidak diketahui"} · <span className="font-mono">{item.progress.done}/{item.progress.total}</span> tugas
             selesai
           </p>
         </div>
-        <Badge variant={STATUS_BADGE_VARIANT[statusKey] ?? "outline"} className="shrink-0">
-          {STATUS_LABELS[statusKey] ?? item.status}
-        </Badge>
+        <StatusStamp status={item.status} size="sm" className="shrink-0" />
       </div>
 
       {item.status === "in_progress" && item.return_note && (
-        <p className="text-xs rounded-md bg-destructive/5 border border-destructive/20 p-2 flex gap-1.5">
-          <MessageSquareWarning className="size-3.5 shrink-0 text-destructive mt-0.5" />
+        <p className="text-xs rounded-md bg-warning/5 border border-warning p-2 flex gap-1.5">
+          <MessageSquareWarning className="size-3.5 shrink-0 text-warning-text mt-0.5" aria-hidden />
           <span>
             Dikembalikan oleh {item.return_note.source === "operator" ? "operator" : "warga"}:{" "}
             {item.return_note.note}
@@ -163,10 +163,10 @@ function CompletionItem({ item }: { item: CompletionCandidate }) {
         )}
         <Link
           href={`/aduan/${item.id}`}
-          className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
+          className="text-sm font-medium text-primary inline-flex min-h-9 items-center gap-1 hover:underline"
         >
           Lihat detail aduan
-          <ExternalLink className="size-3" />
+          <ExternalLink className="size-3.5" aria-hidden />
         </Link>
       </div>
     </li>
@@ -183,10 +183,11 @@ export default async function TugasPage({
   const profile = await getSessionProfile();
 
   const header = (
-    <div>
-      <h1 className="text-2xl font-bold tracking-tight">Tugas Saya</h1>
-      <p className="text-muted-foreground text-sm mt-1">Daftar sub-tugas yang ditugaskan ke OPD Anda.</p>
-    </div>
+    <PageHeader
+      eyebrow="Petugas OPD · Penugasan"
+      title="Tugas Saya"
+      description="Daftar sub-tugas yang ditugaskan ke OPD Anda."
+    />
   );
 
   if (!profile || profile.role !== "petugas_opd" || !profile.opd_id) {
@@ -247,11 +248,11 @@ export default async function TugasPage({
       {(candidatesError || candidates.length > 0) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Bukti Penyelesaian ({candidates.length})</CardTitle>
+            <CardTitle className="text-base">Bukti Penyelesaian <span className="font-mono text-muted-foreground">{candidates.length}</span></CardTitle>
           </CardHeader>
           <CardContent>
             {candidatesError ? (
-              <p className="text-sm text-destructive py-4 text-center">
+              <p role="alert" className="text-sm text-danger-text py-4 text-center">
                 Gagal memuat aduan tahap penyelesaian: {candidatesError}
               </p>
             ) : (
@@ -272,12 +273,13 @@ export default async function TugasPage({
             <Link
               key={f.label}
               href={f.value ? `/tugas?status=${f.value}` : "/tugas"}
+              aria-current={activeFilter === f.value ? "true" : undefined}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs",
-                activeFilter === f.value ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"
+                "inline-flex min-h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors duration-150",
+                activeFilter === f.value ? "bg-primary text-primary-foreground border-primary" : "bg-surface hover:bg-muted"
               )}
             >
-              {f.label} ({count})
+              {f.label} <span className="font-mono">{count}</span>
             </Link>
           );
         })}
@@ -286,7 +288,7 @@ export default async function TugasPage({
       {loadError ? (
         <Card>
           <CardContent>
-            <p className="text-sm text-destructive py-8 text-center">Gagal memuat tugas: {loadError}</p>
+            <p role="alert" className="text-sm text-danger-text py-8 text-center">Gagal memuat tugas: {loadError}</p>
           </CardContent>
         </Card>
       ) : tasks.length === 0 ? (
@@ -303,7 +305,7 @@ export default async function TugasPage({
           <Card key={group.status}>
             <CardHeader>
               <CardTitle className="text-base">
-                {TASK_STATUS_LABELS[group.status]} ({group.tasks.length})
+                {TASK_STATUS_LABELS[group.status]} <span className="font-mono text-muted-foreground">{group.tasks.length}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PhotoCompare } from "@/components/photo-compare";
+import { Stamp } from "@/components/status-stamp";
 import { CompletionUpload } from "@/components/completion-upload";
 import { VerificationReviewActions } from "@/components/verification-review-actions";
 import type { UserRole } from "@/components/sidebar-nav";
@@ -63,22 +64,22 @@ export function VerificationCard({
         <PhotoCompare beforeUrl={complaint.photo_before_url} afterUrl={complaint.photo_after_url} />
 
         {historyError ? (
-          <p className="text-sm text-destructive">Gagal memuat riwayat verifikasi: {historyError}</p>
+          <p role="alert" className="text-sm text-danger-text">Gagal memuat riwayat verifikasi: {historyError}</p>
         ) : !latest ? (
           <div className="flex items-center gap-3 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-            <ShieldCheck className="size-5 shrink-0" />
+            <ShieldCheck className="size-5 shrink-0" aria-hidden />
             Belum ada bukti penyelesaian yang diunggah petugas OPD.
           </div>
         ) : (
           <div className="rounded-md border p-3 space-y-1.5 text-sm">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium">Hasil AI</span>
-              <Badge variant={latest.ai_status === "ai_verified" ? "secondary" : "destructive"}>
+              <Stamp tone={latest.ai_status === "ai_verified" ? "success" : "warning"} size="sm">
                 {latest.ai_status === "ai_verified" ? "Terverifikasi" : "Perlu Ditinjau"}
-              </Badge>
+              </Stamp>
               {latest.manual_approval === true && <Badge variant="outline">Disetujui manual</Badge>}
               {latest.manual_approval === false && <Badge variant="outline">Dikembalikan</Badge>}
-              <span className="text-xs text-muted-foreground">{formatTime(latest.created_at)}</span>
+              <span className="font-mono text-xs text-muted-foreground">{formatTime(latest.created_at)}</span>
             </div>
             <p className="text-muted-foreground">{latest.ai_reason}</p>
             {latest.approval_note && (
@@ -111,11 +112,11 @@ export function VerificationCard({
           <>
             <Separator />
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Riwayat</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Riwayat</p>
               <ul className="space-y-1 text-xs">
                 {events.map((e, i) => (
                   <li key={i}>
-                    <span className="text-muted-foreground">{formatTime(e.at)}</span> — {e.text}
+                    <span className="font-mono text-muted-foreground">{formatTime(e.at)}</span> — {e.text}
                   </li>
                 ))}
               </ul>

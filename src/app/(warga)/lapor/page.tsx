@@ -6,6 +6,7 @@
  * M5: di bawah chat, warga melihat "Aduan Saya" beserta statusnya; aduan
  * berstatus ai_verified menunggu konfirmasi / penolakan warga.
  */
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionProfile } from "@/lib/supabase/server";
@@ -82,12 +83,11 @@ export default async function LaporPage() {
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Laporkan Aduan</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Sampaikan keluhan atau aduan Anda kepada pemerintah daerah.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Warga · Kanal aduan"
+        title="Laporkan Aduan"
+        description="Sampaikan keluhan atau aduan Anda kepada pemerintah daerah."
+      />
 
       <LaporChat regions={regionOptions} />
 

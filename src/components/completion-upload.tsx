@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, Loader2, Upload, X } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface VerifyResponse {
@@ -82,14 +82,16 @@ export function CompletionUpload({
     const verified = result.ai_status === "ai_verified";
     return (
       <div
+        role="status"
         className={
           verified
-            ? "rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"
-            : "rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm"
+            ? "rounded-md border-[1.5px] border-success bg-success/5 p-3 text-sm"
+            : "rounded-md border-[1.5px] border-warning bg-warning/5 p-3 text-sm"
         }
       >
-        <p className="font-medium">
-          {verified ? "Terverifikasi AI ✅ — menunggu konfirmasi warga." : "Perlu ditinjau operator."}
+        <p className={verified ? "flex items-center gap-2 font-semibold text-success-text" : "flex items-center gap-2 font-semibold text-warning-text"}>
+          {verified ? <CheckCircle2 className="size-4 shrink-0" aria-hidden /> : <AlertTriangle className="size-4 shrink-0" aria-hidden />}
+          {verified ? "Terverifikasi AI — menunggu konfirmasi warga." : "Perlu ditinjau operator."}
         </p>
         <p className="text-muted-foreground mt-1">{result.ai_reason}</p>
       </div>
@@ -110,16 +112,16 @@ export function CompletionUpload({
       />
 
       {preview && (
-        <div className="relative w-full max-w-xs aspect-video rounded-lg overflow-hidden ring-1 ring-foreground/10">
+        <div className="relative w-full max-w-xs aspect-video rounded-md overflow-hidden border">
           <Image src={preview} alt="Pratinjau foto bukti" fill className="object-cover" unoptimized />
           {!loading && (
             <button
               type="button"
               onClick={clearFile}
-              className="absolute top-1 right-1 rounded-full bg-background/80 p-1 hover:text-destructive"
+              className="absolute top-1.5 right-1.5 flex size-8 items-center justify-center rounded-md bg-surface/90 text-ink hover:text-danger-text"
               aria-label="Hapus foto"
             >
-              <X className="size-3" />
+              <X className="size-4" aria-hidden />
             </button>
           )}
         </div>
@@ -128,15 +130,14 @@ export function CompletionUpload({
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
-          size="sm"
           variant="outline"
           disabled={!enabled || loading}
           onClick={() => inputRef.current?.click()}
         >
-          <Camera />
+          <Camera aria-hidden />
           {file ? "Ganti foto" : "Pilih foto"}
         </Button>
-        <Button type="button" size="sm" disabled={!enabled || !file || loading} onClick={handleUpload}>
+        <Button type="button" variant="action" disabled={!enabled || !file || loading} onClick={handleUpload}>
           {loading ? <Loader2 className="animate-spin" /> : <Upload />}
           {loading ? "Memverifikasi…" : "Unggah Bukti Penyelesaian"}
         </Button>
@@ -144,11 +145,11 @@ export function CompletionUpload({
 
       {!enabled && disabledReason && <p className="text-xs text-muted-foreground">{disabledReason}</p>}
       {loading && (
-        <p className="text-xs text-muted-foreground">
+        <p role="status" className="text-xs text-muted-foreground">
           Foto sedang diunggah dan diperiksa AI. Proses ini bisa memakan waktu hingga 1 menit.
         </p>
       )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
     </div>
   );
 }
