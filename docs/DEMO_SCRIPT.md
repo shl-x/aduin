@@ -8,7 +8,7 @@ atau tombol "Masuk sebagai …" di landing page `/`.
 
 **Foto demo** (siapkan di desktop laptop demo):
 - `jalan-sebelum.jpg` — jalan berlubang di depan sekolah; dilampirkan warga saat melapor (Step 1).
-- `jalan-sesudah.jpg` — jalan yang sama setelah ditambal; diunggah petugas DPU (Step 6).
+- `jalan-sesudah-v2.jpg` — jalan yang sama setelah ditambal; diunggah petugas DPU (Step 6).
 
 Gunakan dua foto lokasi yang sama dari sudut yang mirip. AI vision hanya memberi status
 "Terverifikasi" jika kedua foto jelas memperlihatkan objek yang sama dan perubahannya nyata.
@@ -27,7 +27,7 @@ Gunakan dua foto lokasi yang sama dari sudut yang mirip. AI vision hanya memberi
 - [ ] `npx tsx --env-file=.env.local supabase/seed/index.ts` (atau **Reset Demo**) — output menyebut "Alert diare Sumberasih aktif".
 - [ ] **Gladi penuh Step 1–7** memakai teks aduan dan foto yang persis sama dengan hari-H.
 - [ ] Setelah gladi: **Reset Demo** di `/dashboard` (menghapus aduan gladi, memulihkan data seed).
-- [ ] `jalan-sebelum.jpg` dan `jalan-sesudah.jpg` ada di desktop.
+- [ ] `jalan-sebelum.jpg` dan `jalan-sesudah-v2.jpg` ada di desktop.
 
 ### 1 jam sebelum demo
 
@@ -127,9 +127,21 @@ gagal, lanjutkan Step 6 dengan rencana sederhana (satu tugas DPU).
 2. **BPKAD** → `/tugas` → tugas #2 **Mulai Kerjakan** → **Tandai Selesai**.
 3. **DPU** → `/tugas` → tugas #3 **Mulai Kerjakan** → **Tandai Selesai**.
 4. Masih sebagai **DPU**, di kartu **Bukti Penyelesaian** (sekarang aktif karena semua tugas selesai):
-   **Pilih foto** → `jalan-sesudah.jpg` → **Unggah Bukti Penyelesaian**.
+   **Pilih foto** → `jalan-sesudah-v2.jpg` → **Unggah Bukti Penyelesaian**.
 5. **Warga** → `/lapor`. Di **Aduan Saya**, bot Aduin mengabarkan aduan sudah ditangani dan
    menampilkan foto sebelum dan sesudah → **Konfirmasi Selesai**.
+
+**Catatan foto Step 6**
+- `jalan-sebelum.jpg` dilampirkan warga saat melapor (Step 1); `jalan-sesudah-v2.jpg` diunggah
+  petugas DPU di langkah 4.
+- Keduanya disimpan di laptop demo dan di bucket Supabase Storage `aduan-photos`.
+- Keduanya adalah **foto simulasi**, bukan foto lapangan asli.
+- **Setiap kali isi foto diganti, ganti juga nama filenya** (mis. `jalan-sesudah-v3.jpg`) agar
+  tidak terkena hasil AI lama. URL foto ikut menjadi input flow dan kunci `ai_cache`, dan objek
+  publik di bucket di-cache CDN/browser. Akibatnya, file baru dengan nama dan path lama bisa tetap
+  terbaca sebagai foto lama, misalnya saat menguji `aduin-verify` di Playground Langflow memakai
+  URL bucket. (Unggahan lewat aplikasi selalu mendapat path baru ber-timestamp, jadi aman dari
+  masalah ini.)
 
 **Hasil yang diharapkan:** setelah unggah (< 1 menit) muncul **"Terverifikasi AI ✅ — menunggu
 konfirmasi warga"** beserta alasan AI. Setelah warga mengonfirmasi, status aduan menjadi **Selesai**.
