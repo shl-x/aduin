@@ -1,0 +1,231 @@
+/* docs/proposal/build/proposal.css — gaya PDF proposal Aduin (A4) */
+/* Font Plus Jakarta Sans disisipkan build-pdf.mjs (@font-face lokal) agar render tidak menunggu jaringan. */
+
+:root {
+  --primary: #1f4fd1;
+  --accent: #ea6c0a;
+  --ink: #13235b;
+  --muted: #4a5578;
+  --line: #d5dcea;
+  --tint: #eef2fa;
+}
+
+@page {
+  size: A4;
+  margin: 18mm;
+}
+
+@page :first {
+  margin: 0;
+}
+
+html {
+  font-size: 10.5pt;
+}
+
+body {
+  font-family: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif;
+  color: var(--ink);
+  line-height: 1.6;
+  background: #fff;
+  margin: 0;
+}
+
+.markdown-body {
+  max-width: none;
+  padding: 0;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--ink);
+  line-height: 1.25;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+h2 {
+  font-size: 17pt;
+  font-weight: 800;
+  margin: 1.6em 0 0.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 2px solid var(--primary);
+}
+
+h3 {
+  font-size: 12.5pt;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 0 0.5em;
+}
+
+p,
+li {
+  orphans: 3;
+  widows: 3;
+}
+
+/* Paragraf pengantar tetap bersama daftar/tabel/diagram sesudahnya. */
+p:has(+ ul),
+p:has(+ ol),
+p:has(+ table),
+p:has(+ .diagram) {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+a {
+  color: var(--primary);
+}
+
+/* --- Sampul ------------------------------------------------------------- */
+.cover {
+  height: 297mm;
+  box-sizing: border-box;
+  padding: 0 24mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  break-after: page;
+  page-break-after: always;
+  border-top: 10mm solid var(--primary);
+}
+
+.cover-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6mm;
+}
+
+.wordmark {
+  font-size: 46pt;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.wordmark .in {
+  color: var(--accent);
+}
+
+.cover-title {
+  margin: 18mm 0 3mm;
+  font-size: 24pt;
+  font-weight: 800;
+  border: 0;
+}
+
+.cover-subtitle {
+  margin: 0;
+  font-size: 14pt;
+  color: var(--muted);
+}
+
+.cover-tagline {
+  margin: 14mm 0 0;
+  font-size: 15pt;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.cover-date {
+  margin: 30mm 0 0;
+  font-size: 11pt;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+/* --- Tabel -------------------------------------------------------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0 1.2em;
+  font-size: 9.5pt;
+  line-height: 1.45;
+  table-layout: auto;
+  display: table;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+thead {
+  display: table-header-group;
+}
+
+tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+th {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  vertical-align: top;
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+
+tbody tr:nth-child(even) td {
+  background: var(--tint);
+}
+
+/* --- Gambar ------------------------------------------------------------- */
+img {
+  display: block;
+  width: 100%;
+  height: auto;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 0.4em 0 0.8em;
+}
+
+p:has(> img) {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 0;
+}
+
+.diagram img {
+  border: 0;
+  width: 100%;
+}
+
+/* Galeri: judul, gambar, dan penjelasan tetap satu halaman. */
+h3 + p:has(> img) {
+  break-before: avoid;
+}
+
+h3 {
+  break-before: auto;
+  padding-top: 0.4em;
+}
+
+em {
+  color: var(--muted);
+  font-size: 9.5pt;
+}
+
+code {
+  font-size: 9pt;
+}
