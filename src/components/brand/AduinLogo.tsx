@@ -7,17 +7,14 @@
  * - variant "mark"       → ikon saja
  * - variant "horizontal" → ikon + wordmark di sampingnya
  * - variant "stacked"    → ikon di atas wordmark
- * - tone "console"       → dipakai di atas latar --console (sidebar)
  */
 
 import { cn } from "@/lib/utils";
 
 type LogoVariant = "mark" | "horizontal" | "stacked";
-type LogoTone = "default" | "console";
 
 interface AduinLogoProps {
   variant?: LogoVariant;
-  tone?: LogoTone;
   /** Tinggi ikon dalam px. Wordmark diskalakan dari nilai ini. */
   size?: number;
   className?: string;
@@ -27,16 +24,15 @@ interface AduinLogoProps {
 
 export function AduinMark({
   size = 32,
-  tone = "default",
   title = "Aduin",
   className,
 }: {
   size?: number;
-  tone?: LogoTone;
   title?: string;
   className?: string;
 }) {
-  const backdrop = tone === "console" ? "var(--console)" : "var(--bg)";
+  // Garis centang & cincin titik memakai warna permukaan di belakang logo.
+  const backdrop = "var(--surface)";
   const decorative = title === "";
   return (
     <svg
@@ -65,27 +61,26 @@ export function AduinMark({
   );
 }
 
-function Wordmark({ size, tone }: { size: number; tone: LogoTone }) {
+function Wordmark({ size }: { size: number }) {
   return (
     <span
       className="font-sans font-extrabold leading-none"
       style={{ fontSize: size, letterSpacing: "-0.03em" }}
     >
-      <span style={{ color: tone === "console" ? "var(--console-ink)" : "var(--ink)" }}>Adu</span>
-      <span style={{ color: "var(--accent)" }}>in</span>
+      <span style={{ color: "var(--ink)" }}>Adu</span>
+      <span style={{ color: "var(--accent-text)" }}>in</span>
     </span>
   );
 }
 
 export function AduinLogo({
   variant = "horizontal",
-  tone = "default",
   size = 32,
   className,
   title = "Aduin",
 }: AduinLogoProps) {
   if (variant === "mark") {
-    return <AduinMark size={size} tone={tone} title={title} className={className} />;
+    return <AduinMark size={size} title={title} className={className} />;
   }
 
   // Wordmark sudah memuat nama "Aduin", jadi ikon di sampingnya dekoratif.
@@ -93,9 +88,9 @@ export function AduinLogo({
   if (variant === "stacked") {
     return (
       <span className={cn("inline-flex flex-col items-center gap-3", className)} role="img" aria-label={label}>
-        <AduinMark size={size} tone={tone} title="" />
+        <AduinMark size={size} title="" />
         <span aria-hidden>
-          <Wordmark size={Math.round(size * 0.45)} tone={tone} />
+          <Wordmark size={Math.round(size * 0.45)} />
         </span>
       </span>
     );
@@ -103,9 +98,9 @@ export function AduinLogo({
 
   return (
     <span className={cn("inline-flex items-center gap-2", className)} role="img" aria-label={label}>
-      <AduinMark size={size} tone={tone} title="" />
+      <AduinMark size={size} title="" />
       <span aria-hidden>
-        <Wordmark size={Math.round(size * 0.68)} tone={tone} />
+        <Wordmark size={Math.round(size * 0.68)} />
       </span>
     </span>
   );

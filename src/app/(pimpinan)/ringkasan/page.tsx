@@ -43,7 +43,7 @@ function KpiTile({ label, value, unit, hint }: { label: string; value: string; u
   return (
     <Card>
       <CardContent className="space-y-2">
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+        <p className="text-[13px] font-bold text-muted-foreground">{label}</p>
         <p className="font-mono text-3xl font-semibold leading-none tracking-tight text-ink">
           {value}
           {unit && <span className="ml-1 text-base font-medium text-muted-foreground">{unit}</span>}
@@ -70,9 +70,9 @@ export default async function RingkasanPage({
 
   const header = (
     <PageHeader
-      eyebrow="Pimpinan · Dashboard"
-      title="Ringkasan Kinerja"
-      description="Gambaran penanganan aduan masyarakat untuk pimpinan daerah."
+      eyebrow="Pimpinan daerah"
+      title="Ringkasan kinerja"
+      description="Berapa aduan masuk, seberapa cepat selesai, dan dinas mana yang perlu didorong."
     />
   );
 
@@ -153,7 +153,7 @@ export default async function RingkasanPage({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Rentang waktu grafik">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Rentang grafik</span>
+        <span className="text-[13px] font-bold text-muted-foreground">Rentang grafik</span>
         {TREND_RANGES.map((d) => (
           <Link
             key={d}

@@ -1,66 +1,87 @@
 /**
  * src/app/page.tsx
  *
- * Landing page Aduin: logo, tagline, penjelasan singkat alur, dan tombol
- * masuk per role demo.
+ * Beranda Aduin ("Meja Kerja"): tagline, contoh percakapan warga dengan Aduin,
+ * empat langkah U.R.U.S, dan daftar "Masuk sebagai" per role demo.
  */
-import { BellRing, ClipboardCheck, MapPinned, MessageSquareText, Network, Sparkles } from "lucide-react";
 import { DemoRoleEntry } from "@/components/demo-role-entry";
-import { AduinLogo } from "@/components/brand/AduinLogo";
-import { ThemeToggle } from "@/components/theme-toggle";
 
-const FEATURES = [
-  { icon: MessageSquareText, title: "Lapor semudah chat", text: "Warga mengadu lewat simulator WhatsApp; AI menanyakan balik jika detail kurang." },
-  { icon: Sparkles, title: "Triage AI yang bisa dijelaskan", text: "Kategori, OPD tujuan, urgensi, dan alasannya — operator tetap bisa mengoreksi." },
-  { icon: MapPinned, title: "Peta hotspot", text: "Aduan serupa yang berdekatan otomatis dikelompokkan menjadi cluster." },
-  { icon: BellRing, title: "Peringatan dini", text: "Lonjakan aduan dideteksi dengan z-score dan diringkas AI untuk pimpinan." },
-  { icon: Network, title: "Koordinasi lintas OPD", text: "AI menyusun sub-tugas berurutan beserta ketergantungannya." },
-  { icon: ClipboardCheck, title: "Verifikasi penyelesaian", text: "Foto bukti dinilai AI, lalu warga mengonfirmasi sebelum aduan ditutup." },
+const STEPS = [
+  { no: "01", letter: "U", rest: "rai aduan", text: "AI memeriksa kelengkapan, bertanya balik bila kurang, lalu menentukan kategori, dinas, dan tingkat mendesak beserta alasannya." },
+  { no: "02", letter: "R", rest: "angkai pola", text: "Aduan serupa yang berdekatan dikelompokkan di peta. Lonjakan di satu desa memicu peringatan dini." },
+  { no: "03", letter: "U", rest: "rutkan penanganan", text: "AI menyusun tugas antardinas: siapa mengerjakan apa, dan tugas mana yang harus menunggu." },
+  { no: "04", letter: "S", rest: "ahkan penyelesaian", text: "Foto sebelum dan sesudah dinilai AI. Aduan baru ditutup setelah warga mengonfirmasi." },
 ];
 
 export default function HomePage() {
   return (
-    <div className="max-w-5xl mx-auto space-y-12 py-2 md:py-6">
-      <section className="relative rounded-xl border bg-surface px-6 py-10 md:px-12 md:py-14">
-        <ThemeToggle className="absolute right-4 top-4" />
-        <div className="flex flex-col items-center text-center gap-6">
-          <AduinLogo variant="stacked" size={112} />
-          <p className="text-xl sm:text-2xl font-semibold text-ink">Aduin aja, sisanya kami yang urus.</p>
-          <p className="text-muted-foreground max-w-2xl leading-relaxed">
-            Otak analitik di balik kanal pengaduan masyarakat pemerintah daerah. Setiap aduan ditriase
-            AI, dipetakan, dipantau lonjakannya, dikoordinasikan ke OPD yang tepat, dan baru dianggap
-            selesai setelah buktinya diverifikasi dan warga mengonfirmasi. Seluruh AI berjalan di IBM
-            watsonx.ai melalui Langflow.
+    <div className="space-y-16 py-2 md:py-6">
+      <section aria-labelledby="judul-hero" className="flex flex-wrap items-center gap-12">
+        <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
+          <p className="text-sm font-bold text-muted-foreground">Prototipe · IBM Hackathon 2026 · Kabupaten Probolinggo</p>
+          <h1 id="judul-hero" className="text-5xl font-extrabold leading-[1.05] tracking-[-0.035em] md:text-[56px]">
+            Aduin aja,
+            <br />
+            sisanya kami yang urus.
+          </h1>
+          <p className="max-w-xl text-lg leading-relaxed text-ink-2">
+            Warga melapor lewat WhatsApp. Aduin memilah aduan, mengumpulkan laporan yang sama, membagi tugas ke
+            dinas yang tepat, dan baru menutup aduan setelah warga sendiri bilang masalahnya beres. Seluruh AI
+            berjalan di IBM watsonx.ai melalui Langflow.
           </p>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            Kabupaten Probolinggo · Prototipe Hackathon IBM
+        </div>
+
+        <div
+          role="group"
+          aria-label="Contoh percakapan warga dengan Aduin"
+          className="flex min-w-0 flex-[1_1_420px] flex-col gap-3.5 rounded-2xl border bg-surface p-6"
+        >
+          <p className="text-[13px] font-bold text-muted-foreground">Contoh di WhatsApp</p>
+          <p className="max-w-[80%] self-end rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-[15px] leading-relaxed text-primary-foreground">
+            Pak jalan sini rusak parah
           </p>
+          <p className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-muted px-4 py-3 text-[15px] leading-relaxed">
+            Bapak/Ibu, di mana persis lokasi jalan yang rusak tersebut?
+          </p>
+          <p className="max-w-[80%] self-end rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-[15px] leading-relaxed text-primary-foreground">
+            Depan SDN 1 Bantaran, lubangnya besar dan dalam.
+          </p>
+          <div className="w-[86%] self-start space-y-2 rounded-2xl rounded-bl-sm bg-muted px-4 py-3.5">
+            <p className="text-[15px] font-bold">Aduan Anda sudah tercatat.</p>
+            <p className="text-[15px] leading-relaxed text-ink-2">
+              Diteruskan ke <strong className="text-ink">DPU</strong>. Tingkat mendesak{" "}
+              <strong className="text-accent-text">tinggi</strong>. Kami kabari lagi setelah dinas selesai bekerja.
+            </p>
+          </div>
         </div>
       </section>
 
-      <section className="space-y-4" aria-labelledby="masuk-sebagai">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Mode demo</p>
-          <h2 id="masuk-sebagai" className="text-xl font-bold">Masuk sebagai</h2>
-        </div>
-        <DemoRoleEntry />
-      </section>
-
-      <section className="space-y-4" aria-labelledby="apa-yang-dikerjakan">
-        <h2 id="apa-yang-dikerjakan" className="text-xl font-bold">Apa yang dikerjakan Aduin</h2>
-        <ul className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <li key={f.title} className="flex gap-3 bg-surface p-5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
-                <f.icon className="size-5" aria-hidden />
-              </span>
-              <div>
-                <p className="font-semibold text-sm">{f.title}</p>
-                <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">{f.text}</p>
-              </div>
+      <section aria-labelledby="judul-cara" className="space-y-6">
+        <h2 id="judul-cara" className="text-[28px] font-extrabold tracking-tight">Empat langkah U.R.U.S</h2>
+        <ol className="grid grid-cols-1 border-t-2 border-strong sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((s) => (
+            <li key={s.no} className="flex flex-col gap-2 pt-5 pr-6 pb-2">
+              <span className="font-mono text-sm text-muted-foreground">{s.no}</span>
+              <h3 className="text-xl font-extrabold">
+                <span className="text-link">{s.letter}</span>
+                {s.rest}
+              </h3>
+              <p className="text-[15px] leading-relaxed text-ink-2">{s.text}</p>
             </li>
           ))}
-        </ul>
+        </ol>
+      </section>
+
+      <section id="peran" aria-labelledby="masuk-sebagai" className="flex flex-wrap gap-x-12 gap-y-8">
+        <div className="min-w-0 flex-[1_1_300px]">
+          <h2 id="masuk-sebagai" className="text-[28px] font-extrabold tracking-tight">Masuk sebagai</h2>
+          <p className="mt-2.5 text-base leading-relaxed text-ink-2">
+            Mode demo: pilih peran untuk melihat Aduin dari sisi orang itu. Tidak perlu kata sandi.
+          </p>
+        </div>
+        <div className="min-w-0 flex-[2_1_620px]">
+          <DemoRoleEntry />
+        </div>
       </section>
     </div>
   );

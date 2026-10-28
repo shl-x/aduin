@@ -11,7 +11,7 @@ import { ImageOff } from "lucide-react";
 function PhotoSlot({ label, url }: { label: string; url: string | null }) {
   return (
     <figure className="space-y-1">
-      <figcaption className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{label}</figcaption>
+      <figcaption className="text-[13px] font-bold text-muted-foreground">{label}</figcaption>
       <div className="relative w-full aspect-video rounded-md overflow-hidden border bg-muted">
         {url ? (
           <a href={url} target="_blank" rel="noopener noreferrer">

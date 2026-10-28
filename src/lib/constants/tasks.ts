@@ -10,8 +10,8 @@ export const TASK_STATUSES = ["belum_mulai", "proses", "selesai"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  belum_mulai: "Belum Mulai",
-  proses: "Proses",
+  belum_mulai: "Belum mulai",
+  proses: "Sedang dikerjakan",
   selesai: "Selesai",
 };
 

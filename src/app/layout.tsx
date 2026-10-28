@@ -4,7 +4,9 @@
  * Root layout Aduin — Server Component.
  *
  * Membaca role pengguna dari sesi Supabase (cookie) di server,
- * lalu meneruskannya sebagai prop ke SidebarNav dan RoleSwitcher.
+ * lalu meneruskannya sebagai prop ke MainNav dan RoleSwitcher.
+ * Tata letak "Meja Kerja": header atas berisi logo, menu per role, pengganti
+ * role demo, dan tombol tema; konten di kolom tengah selebar maks. 1280px.
  * Dengan demikian server dan client merender markup yang identik
  * dan tidak ada hydration mismatch.
  *
@@ -16,12 +18,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { MobileNav, SidebarNav } from "@/components/sidebar-nav";
+import { MainNav } from "@/components/sidebar-nav";
 import { RoleSwitcher } from "@/components/role-switcher";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { AduinMark } from "@/components/brand/AduinLogo";
+import { AduinLogo } from "@/components/brand/AduinLogo";
 import { getSessionRole } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
+import { getActiveAlerts } from "@/lib/analytics/early-warning";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -51,6 +55,9 @@ export default async function RootLayout({
 }) {
   // Baca role dari sesi cookie — null jika belum login
   const role = await getSessionRole();
+  // Badge "Peringatan" di menu operator; gagal memuat tidak boleh menjatuhkan halaman.
+  const alertCount =
+    role === "operator" ? await getActiveAlerts(createClient()).then((a) => a.length, () => 0) : 0;
 
   return (
     <html
@@ -66,23 +73,26 @@ export default async function RootLayout({
           >
             Lewati ke konten
           </a>
-          <div className="flex min-h-screen">
-            <SidebarNav role={role} />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <header className="sticky top-0 z-40 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface/95 px-4 py-2 md:px-6">
-                <Link href="/" className="md:hidden inline-flex rounded-md" aria-label="Aduin — beranda">
-                  <AduinMark size={28} title="" />
+          <div className="flex min-h-screen flex-col">
+            <header className="sticky top-0 z-40 border-b bg-surface">
+              <div className="mx-auto flex min-h-[68px] max-w-[1280px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 md:px-8">
+                <Link href="/" className="inline-flex rounded-md" aria-label="Aduin — beranda">
+                  <AduinLogo variant="horizontal" size={30} title="" />
                 </Link>
-                <ThemeToggle className="ml-auto sm:order-last sm:ml-0" />
-                <div className="order-last flex w-full min-w-0 items-center sm:order-none sm:ml-auto sm:w-auto">
+                <MainNav role={role} alertCount={alertCount} />
+                <div className="ml-auto flex min-w-0 items-center gap-2">
                   <RoleSwitcher currentRole={role} />
+                  <ThemeToggle />
                 </div>
-              </header>
-              <MobileNav role={role} />
-              <main id="konten" tabIndex={-1} className="flex-1 p-4 md:p-6 outline-none">
-                {children}
-              </main>
-            </div>
+              </div>
+            </header>
+            <main
+              id="konten"
+              tabIndex={-1}
+              className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 outline-none md:px-8 md:py-8"
+            >
+              {children}
+            </main>
           </div>
         </ThemeProvider>
       </body>

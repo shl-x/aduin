@@ -4,9 +4,9 @@
  * src/components/sidebar-active-link.tsx
  *
  * Wrapper tipis di atas <Link> yang menambahkan gaya "aktif" berdasarkan
- * pathname saat ini. Dipakai di sidebar konsol (latar --console).
+ * pathname saat ini. Dipakai di menu header (MainNav).
  *
- * Dipisah menjadi Client Component agar SidebarNav tetap Server Component
+ * Dipisah menjadi Client Component agar MainNav tetap Server Component
  * (tidak ada "use client"), sehingga dapat menerima role dari Server tanpa
  * menyebabkan hydration mismatch.
  */
@@ -18,24 +18,23 @@ import { cn } from "@/lib/utils";
 interface Props {
   href: string;
   children: React.ReactNode;
-  /** Varian ringkas untuk strip navigasi mobile. */
-  compact?: boolean;
+  /** Awalan path lain yang juga menandai link ini aktif. */
+  also?: string[];
 }
 
-export function SidebarActiveLink({ href, children, compact = false }: Props) {
+export function SidebarActiveLink({ href, children, also = [] }: Props) {
   const pathname = usePathname();
-  const isActive = pathname === href;
+  const isActive = [href, ...also].some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   return (
     <Link
       href={href}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2.5 rounded-md text-sm transition-colors duration-150 whitespace-nowrap",
-        compact ? "px-3 py-2 min-h-10" : "px-3 py-2.5 min-h-11",
+        "inline-flex min-h-11 items-center rounded-lg px-3.5 text-[15px] whitespace-nowrap transition-colors duration-150",
         isActive
-          ? "bg-primary text-primary-foreground font-semibold"
-          : "text-console-muted hover:bg-white/8 hover:text-console-ink"
+          ? "bg-primary-soft font-bold text-link"
+          : "font-semibold text-ink-2 hover:bg-muted hover:text-ink"
       )}
     >
       {children}

@@ -213,17 +213,17 @@ async function main() {
   await step("05-detail-triage.png", async () => {
     if (!complaintId) throw new Error("Tidak ada aduan dari langkah 03");
     await goto(page, `/aduan/${complaintId}`);
-    await scrollTo(page, page.getByText("Isi Aduan", { exact: true }));
+    await scrollTo(page, page.getByText("Laporan dari warga", { exact: true }));
     await shot(page, "05-detail-triage.png");
   });
 
   await step("06-override.png", async () => {
     if (!complaintId) throw new Error("Tidak ada aduan dari langkah 03");
-    const card = page.getByText("Override Triase", { exact: true });
+    const card = page.getByText("Koreksi keputusan AI", { exact: true });
     await scrollTo(page, card, 260);
-    await page.getByRole("combobox", { name: "Field yang dikoreksi" }).click();
+    await page.getByRole("combobox", { name: "Bagian yang dikoreksi" }).click();
     await page.getByRole("option", { name: "Jalur Penanganan" }).click();
-    await page.getByPlaceholder("Catatan alasan override (opsional)").fill(
+    await page.getByPlaceholder("Alasan koreksi (opsional)").fill(
       "Lubang cukup ditambal sementara oleh tim reaksi cepat DPU sebelum perbaikan permanen."
     );
     await page.getByRole("combobox", { name: "Nilai baru" }).click();
@@ -237,7 +237,7 @@ async function main() {
     if (!complaintId) throw new Error("Tidak ada aduan dari langkah 03");
     await goto(page, `/aduan/${complaintId}`); // buang isian override
     const btn = page.getByRole("button", { name: "Buat Rencana Koordinasi" });
-    await scrollTo(page, page.getByText("Rencana Koordinasi", { exact: true }));
+    await scrollTo(page, page.getByText("Rencana penanganan", { exact: true }));
     const [res] = await Promise.all([
       page.waitForResponse((r) => r.url().includes(`/api/coordination/${complaintId}`), { timeout: 180_000 }),
       btn.click(),
@@ -248,7 +248,7 @@ async function main() {
     }
     await page.getByRole("button", { name: "Buat Ulang Rencana Koordinasi" }).waitFor({ timeout: 30_000 });
     await settle(page);
-    await scrollTo(page, page.getByText("Rencana Koordinasi", { exact: true }));
+    await scrollTo(page, page.getByText("Rencana penanganan", { exact: true }));
     await shot(page, "07-rencana-koordinasi.png");
   });
 
@@ -313,7 +313,7 @@ async function main() {
   await step("10-tugas-opd.png", async () => {
     await switchRole(page, "DPU");
     await goto(page, "/tugas");
-    await scrollTo(page, page.getByText(/^Belum Mulai \d+$/));
+    await scrollTo(page, page.getByText(/^Belum mulai \d+$/i));
     await shot(page, "10-tugas-opd.png");
   });
 
@@ -392,7 +392,7 @@ async function main() {
   await step("12-konfirmasi-warga.png", async () => {
     await switchRole(page, "Warga");
     await goto(page, "/lapor");
-    const btn = page.getByRole("button", { name: "Konfirmasi Selesai" });
+    const btn = page.getByRole("button", { name: "Ya, sudah beres" });
     await btn.first().waitFor();
     await scrollTo(page, page.getByText("Aduan Saya", { exact: true }));
     await shot(page, "12-konfirmasi-warga.png");

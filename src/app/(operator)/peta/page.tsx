@@ -124,9 +124,9 @@ export default async function PetaPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Operator · Pemetaan"
-        title="Peta Hotspot"
-        description="Visualisasi sebaran dan kluster aduan di wilayah."
+        eyebrow="Operator"
+        title="Peta hotspot"
+        description="Sebaran aduan per kecamatan. Aduan bermakna mirip yang berdekatan digabung menjadi satu kelompok: tangani sekali, banyak aduan ikut beres."
       />
 
       <PetaClient complaints={complaints} kecamatanStats={kecamatanStats} clustersById={clustersById} />

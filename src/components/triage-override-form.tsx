@@ -86,9 +86,9 @@ export function TriageOverrideForm({ complaintId }: { complaintId: string }) {
             setValue("");
           }}
         >
-          <SelectTrigger className="w-full sm:w-44" aria-label="Field yang dikoreksi">
+          <SelectTrigger className="w-full sm:w-44" aria-label="Bagian yang dikoreksi">
             <SelectValue>
-              {(v: string | null) => FIELD_OPTIONS.find((f) => f.value === v)?.label ?? "Pilih field"}
+              {(v: string | null) => FIELD_OPTIONS.find((f) => f.value === v)?.label ?? "Pilih bagian"}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -119,14 +119,15 @@ export function TriageOverrideForm({ complaintId }: { complaintId: string }) {
       <Textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="Catatan alasan override (opsional)"
+        placeholder="Alasan koreksi (opsional)"
+        aria-label="Alasan koreksi"
         className="min-h-16"
       />
 
       {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
 
       <Button type="button" size="sm" onClick={handleSubmit} disabled={submitting}>
-        {submitting ? "Menyimpan…" : "Simpan Override"}
+        {submitting ? "Menyimpan…" : "Simpan koreksi"}
       </Button>
     </div>
   );

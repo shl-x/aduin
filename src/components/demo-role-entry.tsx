@@ -3,7 +3,7 @@
 /**
  * src/components/demo-role-entry.tsx
  *
- * Tombol "masuk sebagai …" per akun demo di landing page. Login lewat
+ * Daftar "Masuk sebagai …" per akun demo di beranda (seluruh baris bisa diklik). Login lewat
  * POST /api/demo/login (password tidak pernah sampai ke browser), lalu
  * diarahkan ke halaman utama role tersebut.
  */
@@ -11,7 +11,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
@@ -62,26 +61,26 @@ export function DemoRoleEntry() {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="border-t">
         {ROLES.map((r) => (
-          <div key={r.key} className="rounded-lg border bg-card p-4 flex flex-col gap-3">
-            <div>
-              <p className="font-semibold">{r.title}</p>
-              <p className="text-sm text-muted-foreground mt-0.5">{r.description}</p>
-            </div>
-            <Button
+          <li key={r.key} className="border-b">
+            <button
               type="button"
-              variant={r.key === "operator" ? "default" : "outline"}
-              className="mt-auto self-start"
               disabled={loading !== null}
               onClick={() => enter(r.key, r.home)}
+              className="flex min-h-16 w-full flex-wrap items-center gap-x-6 gap-y-1 px-1 py-3.5 text-left transition-colors hover:bg-muted disabled:opacity-60"
             >
-              {loading === r.key ? <Loader2 className="animate-spin" /> : <ArrowRight />}
-              {loading === r.key ? "Masuk…" : `Masuk sebagai ${r.title}`}
-            </Button>
-          </div>
+              <span className="flex-[0_0_180px] text-[17px] font-extrabold">{r.title}</span>
+              <span className="flex-[1_1_260px] text-[15px] leading-relaxed text-ink-2">{r.description}</span>
+              {loading === r.key ? (
+                <Loader2 className="size-5 animate-spin text-link" aria-label="Masuk…" />
+              ) : (
+                <ArrowRight className="size-5 text-link" aria-hidden />
+              )}
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
       {error && <p role="alert" className="text-sm text-danger-text">{error}</p>}
     </div>
   );

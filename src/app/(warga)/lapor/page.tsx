@@ -82,18 +82,23 @@ export default async function LaporPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
+    <div className="space-y-6">
       <PageHeader
-        eyebrow="Warga · Kanal aduan"
-        title="Laporkan Aduan"
-        description="Sampaikan keluhan atau aduan Anda kepada pemerintah daerah."
+        eyebrow="Warga"
+        title="Lapor dan aduan saya"
+        description="Sampaikan masalah di desa Anda. Kami kabari di sini setelah dinas selesai bekerja."
       />
 
-      <LaporChat regions={regionOptions} />
-
-      {profile?.role === "warga" && (
-        <AduanSaya complaints={myComplaints} loadError={myComplaintsError} />
-      )}
+      <div className="flex flex-wrap items-start gap-7">
+        <div className="min-w-0 flex-[999_1_560px]">
+          <LaporChat regions={regionOptions} />
+        </div>
+        {profile?.role === "warga" && (
+          <div className="min-w-0 flex-[1_1_380px]">
+            <AduanSaya complaints={myComplaints} loadError={myComplaintsError} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

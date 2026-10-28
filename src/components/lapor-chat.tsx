@@ -179,14 +179,12 @@ export function LaporChat({ regions }: { regions: RegionOption[] }) {
   return (
     <div className="flex flex-col h-[calc(100dvh-12rem)] min-h-[480px] max-h-[720px]">
       {/* Kepala simulator WhatsApp */}
-      <div className="flex items-center gap-3 rounded-t-lg bg-console px-4 py-3 text-console-ink">
-        <span className="flex size-9 items-center justify-center rounded-full bg-surface">
-          <AduinMark size={26} title="" />
-        </span>
+      <div className="flex items-center gap-3 rounded-t-xl border border-b-0 bg-surface px-5 py-4">
+        <AduinMark size={34} title="" />
         <div className="min-w-0">
-          <p className="text-sm font-semibold leading-tight">Aduin</p>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-console-muted">
-            Simulator WhatsApp · daring
+          <p className="text-lg font-extrabold leading-tight">Laporkan masalah di desa Anda</p>
+          <p className="text-sm text-muted-foreground">
+            Simulator WhatsApp · tulis seperti chat biasa, Aduin akan bertanya bila ada yang kurang.
           </p>
         </div>
       </div>

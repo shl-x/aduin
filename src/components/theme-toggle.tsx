@@ -26,12 +26,12 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       aria-label="Ganti mode terang atau gelap"
       title="Ganti mode terang/gelap"
       className={cn(
-        "inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-ink transition-colors duration-150 hover:bg-muted",
+        "inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-ink transition-colors duration-150 hover:bg-muted",
         className
       )}
     >
-      <Sun className="size-4 dark:hidden" aria-hidden />
-      <Moon className="hidden size-4 dark:block" aria-hidden />
+      <Sun className="size-5 dark:hidden" aria-hidden />
+      <Moon className="hidden size-5 dark:block" aria-hidden />
     </button>
   );
 }

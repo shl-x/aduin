@@ -17,12 +17,12 @@ export const COMPLAINT_STATUSES = [
 export type ComplaintStatus = (typeof COMPLAINT_STATUSES)[number];
 
 export const STATUS_LABELS: Record<ComplaintStatus, string> = {
-  pending: "Menunggu Triase",
-  triage_failed: "Triase Gagal",
-  triaged: "Sudah Ditriase",
-  in_progress: "Dikerjakan",
-  needs_review: "Perlu Ditinjau",
-  ai_verified: "Terverifikasi AI",
+  pending: "Menunggu triase",
+  triage_failed: "Gagal ditriase",
+  triaged: "Sudah ditriase",
+  in_progress: "Dikerjakan dinas",
+  needs_review: "Perlu ditinjau",
+  ai_verified: "Menunggu konfirmasi warga",
   closed: "Selesai",
 };
 

@@ -56,7 +56,7 @@ export async function POST(
 
   if (complaint.status !== "triaged") {
     return NextResponse.json(
-      { error: "Rencana koordinasi hanya bisa dibuat untuk aduan berstatus 'Sudah Ditriase'." },
+      { error: "Rencana koordinasi hanya bisa dibuat untuk aduan berstatus 'Sudah ditriase'." },
       { status: 409 }
     );
   }

@@ -3,10 +3,10 @@
 /**
  * src/components/aduan-saya.tsx
  *
- * Daftar "Aduan Saya" untuk warga di /lapor (M5). Aduan berstatus
- * ai_verified tampil paling atas sebagai pesan bot Aduin: pemberitahuan
+ * Daftar "Aduan saya" untuk warga di /lapor (M5). Aduan berstatus
+ * ai_verified tampil paling atas sebagai kartu pertanyaan: pemberitahuan
  * bahwa aduan sudah ditangani, foto sebelum/sesudah, dan tombol
- * "Konfirmasi Selesai" / "Tolak" (alasan wajib) →
+ * "Ya, sudah beres" / "Belum beres" (alasan wajib) →
  * POST /api/verify/[id]/confirm.
  */
 
@@ -16,9 +16,8 @@ import { CheckCircle2, Inbox, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PhotoCompare } from "@/components/photo-compare";
-import { StatusStamp } from "@/components/status-stamp";
-import { AduinMark } from "@/components/brand/AduinLogo";
-import { Eyebrow, ticketId } from "@/components/page-header";
+import { Stamp, StatusStamp } from "@/components/status-stamp";
+import { ticketId } from "@/components/page-header";
 
 export interface MyComplaint {
   id: string;
@@ -68,20 +67,21 @@ function ConfirmationBubble({ complaint }: { complaint: MyComplaint }) {
   }
 
   return (
-    <div className="flex items-start gap-2">
-    <AduinMark size={28} title="" className="mt-1" />
-    <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border-[1.5px] border-accent bg-card p-3.5 space-y-3 text-sm">
+    <article className="rounded-xl border-2 border-accent-strong bg-card p-5 space-y-4 text-[15px]">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold text-primary">Aduin</p>
-        <span className="font-mono text-[11px] text-muted-foreground">{ticketId(complaint.id)}</span>
+        <Stamp tone="accent">Menunggu jawaban Anda</Stamp>
+        <span className="font-mono text-[13px] text-muted-foreground">{ticketId(complaint.id)}</span>
       </div>
-      <p>
-        Kabar baik! Aduan Anda <span className="font-medium">&ldquo;{complaint.text}&rdquo;</span> sudah
-        ditangani oleh petugas dan hasilnya telah diperiksa. Mohon konfirmasi apakah masalahnya memang
-        sudah selesai.
+      <p className="text-lg font-extrabold leading-snug">
+        Petugas melaporkan aduan Anda sudah ditangani. Apakah masalahnya benar-benar beres?
       </p>
+      <p className="text-ink-2">&ldquo;{complaint.text}&rdquo;</p>
       <PhotoCompare beforeUrl={complaint.photo_before_url} afterUrl={complaint.photo_after_url} />
-      {complaint.ai_reason && <p className="text-xs text-muted-foreground">{complaint.ai_reason}</p>}
+      {complaint.ai_reason && (
+        <p className="rounded-lg bg-muted px-3 py-2.5 text-sm leading-relaxed">
+          Hasil pemeriksaan AI: {complaint.ai_reason}
+        </p>
+      )}
 
       {rejecting && (
         <Textarea
@@ -98,30 +98,32 @@ function ConfirmationBubble({ complaint }: { complaint: MyComplaint }) {
       <div className="flex flex-wrap gap-2">
         {!rejecting ? (
           <>
-            <Button type="button" variant="action" onClick={() => submit(true)} disabled={pending !== null}>
+            <Button type="button" size="lg" onClick={() => submit(true)} disabled={pending !== null}>
               {pending === "confirm" ? <Loader2 className="animate-spin" aria-hidden /> : <CheckCircle2 aria-hidden />}
-              Konfirmasi Selesai
+              Ya, sudah beres
             </Button>
             <Button
               type="button"
+              size="lg"
               variant="outline"
               onClick={() => setRejecting(true)}
               disabled={pending !== null}
             >
               <XCircle aria-hidden />
-              Tolak
+              Belum beres
             </Button>
           </>
         ) : (
           <>
             <Button
               type="button"
+              size="lg"
               variant="destructive"
               onClick={() => submit(false)}
               disabled={pending !== null}
             >
               {pending === "reject" ? <Loader2 className="animate-spin" aria-hidden /> : <XCircle aria-hidden />}
-              Kirim Penolakan
+              Kirim alasan
             </Button>
             <Button
               type="button"
@@ -138,8 +140,7 @@ function ConfirmationBubble({ complaint }: { complaint: MyComplaint }) {
           </>
         )}
       </div>
-    </div>
-    </div>
+    </article>
   );
 }
 
@@ -156,10 +157,7 @@ export function AduanSaya({
 
   return (
     <section className="space-y-3">
-      <div>
-        <Eyebrow>Riwayat</Eyebrow>
-        <h2 className="text-lg font-bold tracking-tight">Aduan Saya</h2>
-      </div>
+      <h2 className="text-[22px] font-extrabold tracking-tight">Aduan saya</h2>
 
       {loadError ? (
         <p role="alert" className="text-sm text-danger-text rounded-lg border border-destructive/30 p-4 text-center">
@@ -186,10 +184,10 @@ export function AduanSaya({
           <ul className="divide-y rounded-lg border bg-surface">
             {others.slice(0, visible).map((c) => {
               return (
-                <li key={c.id} className="flex items-start justify-between gap-3 p-3">
+                <li key={c.id} className="flex items-start justify-between gap-3 px-4 py-3.5">
                   <div className="min-w-0">
-                    <p className="text-sm line-clamp-2">{c.text}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-[15px] leading-relaxed line-clamp-2">{c.text}</p>
+                    <p className="text-[13px] text-muted-foreground mt-1">
                       <span className="font-mono">{ticketId(c.id)}</span> ·{" "}
                       {[c.category_label, c.region_name].filter(Boolean).join(" · ") || "Belum ditriase"} ·{" "}
                       <span className="font-mono">

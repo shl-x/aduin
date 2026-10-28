@@ -184,9 +184,9 @@ export default async function TugasPage({
 
   const header = (
     <PageHeader
-      eyebrow="Petugas OPD · Penugasan"
-      title="Tugas Saya"
-      description="Daftar sub-tugas yang ditugaskan ke OPD Anda."
+      eyebrow="Petugas OPD"
+      title="Tugas saya"
+      description="Tugas dari rencana koordinasi yang ditujukan ke dinas Anda. Kerjakan yang bisa dimulai, lalu kirim foto bukti setelah semua tugas selesai."
     />
   );
 

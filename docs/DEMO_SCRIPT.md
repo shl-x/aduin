@@ -129,7 +129,7 @@ gagal, lanjutkan Step 6 dengan rencana sederhana (satu tugas DPU).
 4. Masih sebagai **DPU**, di kartu **Bukti Penyelesaian** (sekarang aktif karena semua tugas selesai):
    **Pilih foto** → `jalan-sesudah-v2.jpg` → **Unggah Bukti Penyelesaian**.
 5. **Warga** → `/lapor`. Di **Aduan Saya**, bot Aduin mengabarkan aduan sudah ditangani dan
-   menampilkan foto sebelum dan sesudah → **Konfirmasi Selesai**.
+   menampilkan foto sebelum dan sesudah → **Ya, sudah beres**.
 
 **Catatan foto Step 6**
 - `jalan-sebelum.jpg` dilampirkan warga saat melapor (Step 1); `jalan-sesudah-v2.jpg` diunggah

@@ -72,7 +72,7 @@ export function RoleSwitcher({ currentRole }: RoleSwitcherProps) {
 
   return (
     <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
-      <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground whitespace-nowrap">
+      <span className="hidden lg:inline text-sm text-muted-foreground whitespace-nowrap">
         Mode demo
       </span>
       <div
@@ -93,8 +93,8 @@ export function RoleSwitcher({ currentRole }: RoleSwitcherProps) {
               aria-pressed={isActive}
               onClick={() => switchTo(demo.key)}
               className={cn(
-                "h-8 flex-1 px-1.5 text-xs sm:flex-none sm:px-2.5",
-                isActive ? "font-semibold" : "text-muted-foreground hover:bg-surface"
+                "h-10 flex-1 px-2 text-[13px] sm:flex-none sm:px-3",
+                isActive ? "font-bold" : "font-semibold text-ink-2 hover:bg-surface"
               )}
             >
               {loading === demo.key ? (

@@ -19,7 +19,7 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
           <span className="flex size-12 items-center justify-center rounded-md border-[1.5px] border-danger text-danger-text">
             <AlertTriangle className="size-6" aria-hidden />
           </span>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-danger-text">Gangguan sistem</p>
+          <p className="text-[13px] font-bold text-danger-text">Gangguan sistem</p>
           <div role="alert">
             <h1 className="text-lg font-bold">Terjadi kesalahan saat memuat halaman</h1>
             <p className="text-sm text-muted-foreground mt-1 break-words">{error.message}</p>

@@ -1,10 +1,9 @@
 /**
  * src/components/status-stamp.tsx
  *
- * Status aduan dan sub-tugas sebagai "stempel": teks kapital IBM Plex Mono,
- * bingkai 1.5px, sudut 4px. Warna per status konsisten di seluruh aplikasi
- * (CSS .stamp di globals.css). `tilted` memiringkan -1deg — hanya dipakai di
- * halaman detail aduan.
+ * Status aduan dan sub-tugas sebagai tag: kata sifat sentence case di atas
+ * latar tint lembut, tidak bisa diklik (pola GOV.UK Tag). Warna per status
+ * konsisten di seluruh aplikasi (CSS .stamp di globals.css).
  */
 
 import { STATUS_LABELS, type ComplaintStatus } from "@/lib/constants/status";
@@ -34,21 +33,20 @@ interface StampProps {
   tone: StampTone;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg";
-  tilted?: boolean;
   className?: string;
 }
 
 const SIZE_CLASS = {
-  sm: "px-1.5 py-1 text-[10px]",
-  md: "px-2 py-1.5 text-[11px]",
-  lg: "px-3 py-2 text-xs",
+  sm: "px-2 py-0.5 text-xs",
+  md: "px-2.5 py-1 text-[13px]",
+  lg: "px-3 py-1.5 text-sm",
 } as const;
 
-export function Stamp({ tone, children, size = "md", tilted = false, className }: StampProps) {
+export function Stamp({ tone, children, size = "md", className }: StampProps) {
   return (
     <span
       data-tone={tone}
-      className={cn("stamp", SIZE_CLASS[size], tilted && "-rotate-1", className)}
+      className={cn("stamp", SIZE_CLASS[size], className)}
     >
       {children}
     </span>

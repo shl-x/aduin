@@ -112,7 +112,7 @@ export function VerificationCard({
           <>
             <Separator />
             <div className="space-y-1.5">
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Riwayat</p>
+              <p className="text-[13px] font-bold text-muted-foreground">Riwayat</p>
               <ul className="space-y-1 text-xs">
                 {events.map((e, i) => (
                   <li key={i}>
