@@ -359,3 +359,7 @@ Masalah yang pernah kami temui:
 | Alert tampil tanpa ringkasan ("Ringkasan AI belum tersedia") | Langflow gagal atau timeout saat alert dibuat. | Nyalakan Langflow, lalu klik **Coba Lagi** di `/alert`. |
 | Verifikasi foto selalu "Perlu Ditinjau" dengan alasan "Verifikasi AI gagal" | Flow `aduin-verify` gagal. | Cek kredensial Aduin Verify Vision, pastikan bucket `aduan-photos` publik, dan pastikan Langflow menyala. |
 | Error "Terapkan migrasi …0003/0004…" | Migrasi belum diterapkan. | Jalankan file SQL yang disebut. |
+
+## 9. Lisensi
+
+Dirilis di bawah [Lisensi MIT](LICENSE).
