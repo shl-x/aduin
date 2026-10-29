@@ -50,3 +50,7 @@ Aduin adalah prototipe untuk **IBM Hackathon 2026** dengan studi kasus Kabupaten
 * **Selesai berarti beres.** Aduan baru ditutup setelah foto bukti lolos verifikasi dan warga mengonfirmasi.
 * **Tahan gagal.** Setiap flow AI punya fallback, sehingga aduan tidak pernah hilang walau Langflow lambat.
 * **Mudah dipahami.** UI "Meja Kerja" memakai bahasa sehari-hari, lima tahap kerja yang jelas, serta mode terang dan gelap.
+
+## Lisensi
+
+Dokumentasi ini dilisensikan di bawah [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/deed.id). Kamu boleh menyalin dan mengadaptasinya asal mencantumkan sumber: **Aduin Docs, Tim Aduin**. Kode sumber Aduin sendiri bersifat proprietary dan tidak termasuk dalam lisensi ini.

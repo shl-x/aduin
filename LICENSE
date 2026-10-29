@@ -1,16 +1,26 @@
-MIT License
+Aduin — Proprietary License
+Copyright (c) 2026 Tim Aduin. All rights reserved.
 
-Copyright (c) 2026 Tim Aduin
+-------------------------------------------------------------------------------
+ENGLISH
+-------------------------------------------------------------------------------
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This repository and everything in it, including but not limited to source
+code, database schemas and migrations, seed data, AI prompts, Langflow flows,
+designs, images, and documents (together, the "Software"), are the proprietary
+and confidential property of Tim Aduin.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+No license or right is granted to any person to use, copy, modify, merge,
+publish, distribute, sublicense, sell, host, or create derivative works of the
+Software, in whole or in part, without prior written permission from the
+copyright holder.
+
+Being given access to this repository does not grant any license. Any
+unauthorized use, copying, or distribution is strictly prohibited.
+
+Exception: the documentation in the `docs/gitbook/` directory is licensed
+under the Creative Commons Attribution 4.0 International License (CC BY 4.0),
+https://creativecommons.org/licenses/by/4.0/.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +29,32 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+For licensing inquiries, contact Tim Aduin via https://github.com/shl-x.
+
+-------------------------------------------------------------------------------
+BAHASA INDONESIA
+-------------------------------------------------------------------------------
+
+Repositori ini beserta seluruh isinya, termasuk namun tidak terbatas pada kode
+sumber, skema dan migrasi database, data seed, prompt AI, flow Langflow,
+desain, gambar, dan dokumen (selanjutnya disebut "Perangkat Lunak"), adalah
+milik eksklusif dan bersifat rahasia dari Tim Aduin.
+
+Tidak ada lisensi atau hak yang diberikan kepada siapa pun untuk menggunakan,
+menyalin, mengubah, menggabungkan, menerbitkan, mendistribusikan,
+mensublisensikan, menjual, meng-hosting, atau membuat karya turunan dari
+Perangkat Lunak, baik sebagian maupun seluruhnya, tanpa izin tertulis terlebih
+dahulu dari pemegang hak cipta.
+
+Diberikannya akses ke repositori ini tidak berarti diberikannya lisensi.
+Setiap penggunaan, penyalinan, atau distribusi tanpa izin dilarang keras.
+
+Pengecualian: dokumentasi di direktori `docs/gitbook/` dilisensikan di bawah
+Creative Commons Attribution 4.0 International (CC BY 4.0),
+https://creativecommons.org/licenses/by/4.0/deed.id.
+
+Perangkat Lunak disediakan "APA ADANYA", tanpa jaminan dalam bentuk apa pun.
+Apabila terdapat perbedaan penafsiran, versi bahasa Inggris yang berlaku.
+
+Untuk keperluan lisensi, hubungi Tim Aduin melalui https://github.com/shl-x.

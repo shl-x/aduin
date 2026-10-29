@@ -362,4 +362,9 @@ Masalah yang pernah kami temui:
 
 ## 9. Lisensi
 
-Dirilis di bawah [Lisensi MIT](LICENSE).
+Hak cipta © 2026 Tim Aduin. **Seluruh hak dilindungi (proprietary).** Kode sumber, prompt, flow
+Langflow, dan data di repositori ini tidak boleh dipakai, disalin, diubah, atau didistribusikan tanpa izin
+tertulis. Lihat [`LICENSE`](LICENSE).
+
+Dokumentasi di `docs/gitbook/` dan di [Aduin Docs](https://shlx.gitbook.io/aduin/) dilisensikan di bawah
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.id).
